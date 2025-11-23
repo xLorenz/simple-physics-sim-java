@@ -21,11 +21,13 @@ public class Panel extends JPanel implements ActionListener {
     double accumulator = 0.0;
 
     Physics p;
+    Physics.Handler handler;
 
     // constructor
     Panel() {
         random = new Random();
         p = new Physics();
+        handler = p.new Handler();
 
         this.setPreferredSize(new Dimension(SCR_WIDTH, SCR_HEIGHT));
         this.setBackground(new Color(12, 13, 20));
@@ -44,11 +46,13 @@ public class Panel extends JPanel implements ActionListener {
     // ----------------------------------------//
 
     public void updatePhysics(double step) {
-
+        handler.updatePhysics(step);
     }
 
     public void drawObjects(Graphics g) {
-
+        for(Physics.PhysicsObject o : p.getObjects()){
+            o.draw(g);
+        }
     }
 
     // ----------------------------------------//

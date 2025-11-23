@@ -28,12 +28,15 @@ public class Physics {
 
     public class Handler {
         private double gravity = 9.8;
+        private int chunkDimension = 25;
         
         public double getGravity(){return gravity;}
         public void setGravity(double gravity){this.gravity = gravity;}
+        public int getChunkDimention(){return chunkDimension;}
+        public void setChunkDimension(int dim){this.chunkDimension = dim;}
 
         Handler(){
-
+            
         }
 
         public void updatePhysics(double dt) {
@@ -71,7 +74,7 @@ public class Physics {
 
         @Override
         public void update(double dt) {
-            
+
         }
 
         @Override

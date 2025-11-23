@@ -36,14 +36,21 @@ public class Physics {
         public void setChunkDimension(int dim){this.chunkDimension = dim;}
 
         Handler(){
-            
+
         }
+
 
         public void updatePhysics(double dt) {
             for (PhysicsObject obj : objects) {
                 obj.update(dt);
             }
         }
+    }
+    
+    public class Chunk {
+        private int[] coordinates = new int[2];
+        private boolean populated;
+        
     }
 
     abstract class PhysicsObject {
@@ -56,6 +63,7 @@ public class Physics {
 
         public abstract void update(double dt);
         public abstract void draw(Graphics g);
+        public abstract int getChunk();
     }
 
     public class PhysicsBall extends PhysicsObject {
@@ -74,6 +82,11 @@ public class Physics {
 
         @Override
         public void update(double dt) {
+
+        }
+
+        @Override 
+        public int getChunk(){
 
         }
 

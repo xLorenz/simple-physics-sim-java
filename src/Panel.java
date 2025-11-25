@@ -20,14 +20,12 @@ public class Panel extends JPanel implements ActionListener {
     final double FIXED_STEP = 1.0 / 60.0; // 60 Hz physics
     double accumulator = 0.0;
 
-    Physics p;
-    Physics.Handler handler;
+    PhysicsHandler handler;
 
     // constructor
     Panel() {
         random = new Random();
-        p = new Physics();
-        handler = p.new Handler();
+        handler = new PhysicsHandler();
 
         this.setPreferredSize(new Dimension(SCR_WIDTH, SCR_HEIGHT));
         this.setBackground(new Color(12, 13, 20));
@@ -50,9 +48,7 @@ public class Panel extends JPanel implements ActionListener {
     }
 
     public void drawObjects(Graphics g) {
-        for(Physics.PhysicsObject o : p.getObjects()){
-            o.draw(g);
-        }
+        handler.displayObjects(g);
     }
 
     // ----------------------------------------//

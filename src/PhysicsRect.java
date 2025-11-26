@@ -18,14 +18,14 @@ public class PhysicsRect extends PhysicsObject {
     }
 
     @Override
-    public void draw(Graphics g) {
-        g.setColor(displayColor);
-        g.drawRect(pos[0], pos[1], width, height);
+    public void addVelocity(double[] v) {
+
     }
 
     @Override
-    public int getChunk() {
-        return 0;
+    public void draw(Graphics g) {
+        g.setColor(displayColor);
+        g.drawRect(pos[0], pos[1], width, height);
     }
 
     public int[] getCenter() {

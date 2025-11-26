@@ -2,58 +2,54 @@ package src;
 
 import java.awt.Graphics;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PhysicsHandler {
 
-    private List<PhysicsObject> objects = new ArrayList<>();
-    private List<Chunk> chunks = new ArrayList<>();
+    public double gravity = 9.8;
+    public int chunkGridSize = 10; // 10x10 grid of chunks
+    public int chunkDimension = 50; // pixels
 
-    private double gravity = 9.8;
-    private int chunkDimension = 25; // pixels
-    private int chunkGridDimension = 10; // 10x10 grid of chunks
+    public Map<Long, Chunk> chunks = new HashMap<>();
+    public List<PhysicsObject> objects = new ArrayList<>();
 
     PhysicsHandler() {
 
     }
 
-    public void displayObjects(Graphics g) {
-
+    // get key for a chunk
+    public long keyFor(int cx, int cy) {
+        return 0xffffffffL;
     }
 
-    public List<PhysicsObject> getObjects() {
-        return objects;
+    // check for a chunk or add one to the map
+    public Chunk getOrCreateChunk(int cx, int cy) {
+        return new Chunk();
     }
 
-    public void addObject(PhysicsObject o) {
-        objects.add(o);
-    }
+    public void updateObjectsChunk(PhysicsObject o) {
 
-    public void removeObject(PhysicsObject o) {
-        if (objects.contains(o)) {
-            objects.remove(o);
-        }
-    }
-
-    public double getGravity() {
-        return gravity;
-    }
-
-    public void setGravity(double gravity) {
-        this.gravity = gravity;
-    }
-
-    public int getChunkDimention() {
-        return chunkDimension;
-    }
-
-    public void setChunkDimension(int dim) {
-        this.chunkDimension = dim;
     }
 
     public void updatePhysics(double dt) {
-        for (PhysicsObject obj : objects) {
-            obj.update(dt);
-        }
+
+    }
+
+    public void calcCollision(PhysicsObject o1, PhysicsObject o2) {
+
+    }
+
+    public void addObject(PhysicsObject o) {
+
+    }
+
+    public void removeObject(PhysicsObject o) {
+
+    }
+
+    public void displayObjects(Graphics g) {
+
     }
 }

@@ -17,13 +17,13 @@ public class PhysicsBall extends PhysicsObject {
     }
 
     @Override
-    public int getChunk() {
-        return 0;
-    }
-
-    @Override
     public void draw(Graphics g) {
         g.setColor(displayColor);
         g.drawOval(pos[0] + radius / 2, pos[0] + radius / 2, radius, radius);
     }
+
+    public void addVelocity(double[] v) {
+
+    }
+
 }

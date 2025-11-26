@@ -5,9 +5,17 @@ import java.util.List;
 
 public class Chunk {
 
-    private List<PhysicsObject> objects = new ArrayList<>();
+    public List<PhysicsObject> objects = new ArrayList<>();
 
-    Chunk(){
-        
+    public boolean isEmpty;
+
+    Chunk() {
+
     }
+
+    // update isEmpty
+    public void updateState() {
+        isEmpty = objects.isEmpty();
+    }
+
 }

@@ -50,8 +50,8 @@ public class PhysicsHandler {
     }
 
     public void updateObjectsChunk(PhysicsObject o) {
-        int ncx = (int) Math.floor(o.x / chunkDimension);
-        int ncy = (int) Math.floor(o.y / chunkDimension);
+        int ncx = (int) Math.floor(o.pos.x / chunkDimension);
+        int ncy = (int) Math.floor(o.pos.y / chunkDimension);
 
         if (ncx == o.cx && ncy == o.cy)
             return;
@@ -120,15 +120,15 @@ public class PhysicsHandler {
 
     public void addBall(int x, int y, int radius, double elasticity) {
         PhysicsBall ball = new PhysicsBall(radius, elasticity, nextId++);
-        ball.x = x;
-        ball.y = y;
+        ball.pos.x = x;
+        ball.pos.y = y;
         objects.add(ball);
     }
 
     public void addRect(int x, int y, int width, int height) {
         PhysicsRect rect = new PhysicsRect(width, height, nextId++);
-        rect.x = x;
-        rect.y = y;
+        rect.pos.x = x;
+        rect.pos.y = y;
         objects.add(rect);
     }
 

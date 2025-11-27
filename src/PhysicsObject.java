@@ -5,9 +5,9 @@ import java.awt.Graphics;
 
 abstract class PhysicsObject {
 
-    public int x, y; // pos, for all objects, its center
+    public Vector2 pos = new Vector2(); // pos, for all objects, its center
     public int cx, cy; // center chunkPos
-    public double vx, vy; // velocity
+    public Vector2 vel = new Vector2(); // velocity
     public int cMinCx, cMaxCx, cMinCy, cMaxCy; // chunks boundingBox for big objects
     public final long id; // identifier
 
@@ -36,12 +36,19 @@ abstract class PhysicsObject {
         cMaxCy = chunkCoords[3];
     }
 
-    public abstract void addVelocity(double vx, double vy);
+    public abstract void addVelocity(Vector2 vel);
 
     public abstract void update(double gravity, double dt);
 
     public abstract void draw(Graphics g);
 
     public abstract int[] getOccuppiedChunks(int chunkDim);
+
+    abstract Manifold collide(PhysicsObject other);
+
+    // hooks for double dispatch
+    abstract Manifold collideWithCircle(PhysicsBall c);
+
+    abstract Manifold collideWithRect(PhysicsRect aabb);
 
 }

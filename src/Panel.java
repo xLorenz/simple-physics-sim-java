@@ -8,8 +8,8 @@ import java.util.Random;
 public class Panel extends JPanel implements ActionListener {
 
     // set display dimensions
-    static final int SCR_WIDTH = 950;
-    static final int SCR_HEIGHT = 750;
+    static final int SCR_WIDTH = 1000;
+    static final int SCR_HEIGHT = 800;
 
     boolean running = false;
     Timer timer;
@@ -25,7 +25,7 @@ public class Panel extends JPanel implements ActionListener {
     // constructor
     Panel() {
         random = new Random();
-        handler = new PhysicsHandler();
+        handler = new PhysicsHandler(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
         this.setPreferredSize(new Dimension(SCR_WIDTH, SCR_HEIGHT));
         this.setBackground(new Color(12, 13, 20));
@@ -36,25 +36,27 @@ public class Panel extends JPanel implements ActionListener {
     }
 
     public void startSimulation() {
+        running = true;
         lastTime = System.nanoTime();
         timer = new Timer(16, this);
         timer.start();
 
     }
+
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        draw(g);
+    }
     // ----------------------------------------//
 
-    public void updatePhysics(double step) {
-        handler.updatePhysics(step);
-    }
-
-    public void drawObjects(Graphics g) {
+    public void draw(Graphics g) {
+        handler.displayChunkBorders(g, SCR_WIDTH, SCR_HEIGHT);
         handler.displayObjects(g);
     }
 
     // ----------------------------------------//
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
+    public void update() {
         long now = System.nanoTime();
         dt = (now - lastTime) / 1_000_000_000.0; // seconds
         lastTime = now;
@@ -62,16 +64,32 @@ public class Panel extends JPanel implements ActionListener {
         // accumulate and run fixed-step updates for deterministic physics
         accumulator += dt;
         while (accumulator >= FIXED_STEP) {
-            updatePhysics(FIXED_STEP); // implement physics update using fixed step
+            handler.updatePhysics(FIXED_STEP); // implement physics update using fixed step
             accumulator -= FIXED_STEP;
         }
+    }
 
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (running) {
+            update(); // update physics
+        }
         // render once per frame (use the remaining fractional time if needed)
         repaint();
     }
 
     public class MyKeyAdapter extends KeyAdapter {
+        @Override
+        public void keyPressed(KeyEvent e) {
+            switch (e.getKeyCode()) {
+                case KeyEvent.VK_SPACE:
+                    handler.addBall(SCR_WIDTH / 2, SCR_HEIGHT / 2, Math.max(1, random.nextInt(50)), 0.5);
+                    break;
 
+                default:
+                    break;
+            }
+        }
     }
 
 }

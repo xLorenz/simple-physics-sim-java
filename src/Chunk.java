@@ -9,6 +9,8 @@ public class Chunk {
 
     public boolean isEmpty;
 
+    public List<Chunk> surroundingChunks = new ArrayList<>();
+
     Chunk() {
 
     }

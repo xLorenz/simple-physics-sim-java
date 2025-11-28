@@ -2,6 +2,7 @@ package src;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.util.Random;
 
 abstract class PhysicsObject {
 
@@ -9,6 +10,8 @@ abstract class PhysicsObject {
     public int cx, cy; // center chunkPos
     public Vector2 vel = new Vector2(); // velocity
     public int cMinCx, cMaxCx, cMinCy, cMaxCy; // chunks boundingBox for big objects
+    public double mass;
+    public double elasticity;
     public final long id; // identifier
 
     public Color displayColor = Color.red;
@@ -16,6 +19,12 @@ abstract class PhysicsObject {
 
     PhysicsObject(long id) {
         this.id = id;
+        setColor();
+    }
+
+    public void setColor() {
+        Random r = new Random();
+        displayColor = new Color(r.nextInt(255), r.nextInt(255), r.nextInt(255));
     }
 
     public void notifyListener(PhysicsObject o) {
@@ -35,8 +44,6 @@ abstract class PhysicsObject {
         cMinCy = chunkCoords[2];
         cMaxCy = chunkCoords[3];
     }
-
-    public abstract void addVelocity(Vector2 vel);
 
     public abstract void update(double gravity, double dt);
 

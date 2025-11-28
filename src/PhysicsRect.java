@@ -6,10 +6,12 @@ public class PhysicsRect extends PhysicsObject {
     public int width;
     public int height;
 
-    PhysicsRect(int width, int height, long id) {
+    PhysicsRect(int width, int height, double mass, long id) {
         super(id);
         this.width = width;
         this.height = height;
+        this.mass = mass;
+        this.elasticity = 0.0;
     }
 
     @Override
@@ -18,15 +20,9 @@ public class PhysicsRect extends PhysicsObject {
     }
 
     @Override
-    public void addVelocity(Vector2 vel) {
-
-    }
-
-    @Override
     public void draw(Graphics g) {
         g.setColor(displayColor);
-        int[] c = getCorners();
-        g.fillRect(c[0], c[1], width, height);
+        g.fillRect((int) (pos.x - width / 2), (int) (pos.y - height / 2), width, height);
     }
 
     public int[] getCorners() {
@@ -34,8 +30,8 @@ public class PhysicsRect extends PhysicsObject {
         int[] result = new int[4];
 
         result[0] = (int) (pos.x - width / 2);
-        result[2] = (int) (pos.y - height / 2);
-        result[1] = (int) (pos.x + width / 2);
+        result[1] = (int) (pos.y - height / 2);
+        result[2] = (int) (pos.x + width / 2);
         result[3] = (int) (pos.y + height / 2);
 
         return result;
@@ -46,10 +42,17 @@ public class PhysicsRect extends PhysicsObject {
         int[] result = new int[4];
         int[] corners = getCorners();
 
-        result[0] = corners[0] / chunkDim;
-        result[1] = corners[1] / chunkDim;
-        result[2] = corners[2] / chunkDim;
-        result[3] = corners[3] / chunkDim;
+        // corners = [left, top, right, bottom]
+        int left = corners[0];
+        int top = corners[1];
+        int right = corners[2];
+        int bottom = corners[3];
+
+        // minCx, maxCx, minCy, maxCy
+        result[0] = (int) Math.floor((double) left / chunkDim);
+        result[1] = (int) Math.floor((double) right / chunkDim);
+        result[2] = (int) Math.floor((double) top / chunkDim);
+        result[3] = (int) Math.floor((double) bottom / chunkDim);
 
         return result;
     }

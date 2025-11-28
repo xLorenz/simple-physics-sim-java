@@ -26,6 +26,10 @@ public class Panel extends JPanel implements ActionListener {
     Panel() {
         random = new Random();
         handler = new PhysicsHandler(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        handler.addRect(SCR_WIDTH / 2, SCR_HEIGHT - 100, 750, 60);
+        handler.addRect(100, SCR_HEIGHT / 2, 60, 750);
+        handler.addRect(900, SCR_HEIGHT / 2, 60, 750);
+        handler.addBall(SCR_WIDTH / 2, SCR_HEIGHT / 2, 100, 0);
 
         this.setPreferredSize(new Dimension(SCR_WIDTH, SCR_HEIGHT));
         this.setBackground(new Color(12, 13, 20));
@@ -52,6 +56,8 @@ public class Panel extends JPanel implements ActionListener {
     public void draw(Graphics g) {
         handler.displayChunkBorders(g, SCR_WIDTH, SCR_HEIGHT);
         handler.displayObjects(g);
+        // collision debug overlay
+        // handler.displayCollisionDebug(g);
     }
 
     // ----------------------------------------//
@@ -83,7 +89,8 @@ public class Panel extends JPanel implements ActionListener {
         public void keyPressed(KeyEvent e) {
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_SPACE:
-                    handler.addBall(SCR_WIDTH / 2, SCR_HEIGHT / 2, Math.max(1, random.nextInt(50)), 0.5);
+                    handler.addBall(100 + random.nextInt(800), 100 + random.nextInt(200),
+                            10, 0.8);
                     break;
 
                 default:

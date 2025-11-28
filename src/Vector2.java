@@ -32,21 +32,20 @@ public class Vector2 {
         return new Vector2(x - o.x, y - o.y);
     }
 
-    public Vector2 addLocal(Vector2 o) {
+    public void addLocal(Vector2 o) {
         x += o.x;
         y += o.y;
-        return this;
     }
 
-    public Vector2 subLocal(Vector2 o) {
+    public void subLocal(Vector2 o) {
         x -= o.x;
         y -= o.y;
-        return this;
     }
 
     public Vector2 scale(double s) {
 
-        return new Vector2(x * x, y * s);
+        // scale both components by s
+        return new Vector2(x * s, y * s);
     }
 
     public Vector2 scaleLocal(double s) {

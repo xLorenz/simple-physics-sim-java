@@ -6,15 +6,16 @@ public class PhysicsBall extends PhysicsObject {
     public int radius;
     public double elasticity;
 
-    PhysicsBall(int radius, double elasticity, long id) {
+    PhysicsBall(int radius, double elasticity, double mass, long id) {
         super(id);
         this.radius = radius;
         this.elasticity = elasticity;
+        this.mass = mass;
     }
 
     @Override
     public void update(double gravity, double dt) {
-        vel.y += gravity;
+        vel.y += gravity * dt;
 
         pos.addLocal(vel.scale(dt));
         // friction
@@ -25,11 +26,6 @@ public class PhysicsBall extends PhysicsObject {
     public void draw(Graphics g) {
         g.setColor(displayColor);
         g.fillOval((int) (pos.x - radius), (int) (pos.y - radius), radius * 2, radius * 2);
-    }
-
-    @Override
-    public void addVelocity(Vector2 vel) {
-
     }
 
     @Override

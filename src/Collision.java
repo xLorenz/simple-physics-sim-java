@@ -16,8 +16,8 @@ public class Collision {
         Manifold m = new Manifold();
         m.collided = true;
 
-        // same center
-        if (dist == 0) {
+        // same center or extremely close — pick a stable normal
+        if (dist < 1e-6) {
             m.penetration = rSum;
             m.normal = new Vector2(1, 0);
             m.contacts.add(b1.pos);
@@ -25,6 +25,11 @@ public class Collision {
             m.penetration = rSum - dist;
             m.normal = distance.scale(1.0 / dist);
             m.contacts.add(b1.pos.add(m.normal.scale(b1.radius - m.penetration * 0.5)));
+        }
+
+        // ensure normal is normalized
+        if (m.normal != null) {
+            m.normal.normalizeLocal();
         }
 
         return m;
@@ -58,48 +63,71 @@ public class Collision {
 
         // if circle is exactly on the border ( closest == center )
         // choose the nearest rectangle face as the separation direction
-        if (distSqrd == 0.0) {
-            // dist from circle center to each side
-            int[] sides = r.getCorners();
+        if (clampedX == d.x && clampedY == d.y) {
 
-            double dl = Math.abs(b.pos.x - sides[0]);
-            double dt = Math.abs(sides[1] - b.pos.y);
-            double dr = Math.abs(sides[2] - b.pos.x);
-            double db = Math.abs(b.pos.y - sides[3]);
+            double distLeft = Math.abs(d.x + halfW);
+            double distTop = Math.abs(d.y + halfH);
+            double distRight = Math.abs(halfW - d.x);
+            double distBottom = Math.abs(halfH - d.y);
 
-            // choose smalles distance
-            double min = dl;
+            // choose smallest distance to a face — that'll be the separation direction
+            double min = distLeft;
             Vector2 normal = new Vector2(-1, 0); // left default
+            double contactX = r.pos.x - halfW;
+            double contactY = b.pos.y;
 
-            if (dr < min) {// nearest right, normal left
-                min = dr;
+            if (distRight < min) { // right face is closest
+                min = distRight;
                 normal.set(1, 0);
+                contactX = r.pos.x + halfW;
+                contactY = b.pos.y;
             }
 
-            if (db < min) {// nearest bottom, normal down
-                min = db;
+            if (distTop < min) { // top face is closest
+                min = distTop;
                 normal.set(0, -1);
-            }
-            if (dt < min) {// nearest top, normal up
-                min = dt;
-                normal.set(0, 1);
+                contactX = b.pos.x;
+                contactY = r.pos.y - halfH;
             }
 
-            // penetration, when center inside, move center to outide + radius
+            if (distBottom < min) { // bottom face is closest
+                min = distBottom;
+                normal.set(0, 1);
+                contactX = b.pos.x;
+                contactY = r.pos.y + halfH;
+            }
+
+            // penetration magnitude when center is inside the rect
             m.penetration = b.radius + min;
             m.normal = normal;
-            // aproximate contact point as the point on the rect face nearest the circ
-            Vector2 contactPoint = new Vector2(
-                    Math.max(r.pos.x - halfW, Math.min(b.pos.x, r.pos.x + halfW)),
-                    Math.max(r.pos.y - halfH, Math.min(b.pos.y, r.pos.y + halfH)));
-            m.contacts.add(contactPoint);
+            // approximate contact point as the point on the rect face nearest the circle
+            m.contacts.add(new Vector2(contactX, contactY));
+            // make sure normal is unit length
+            if (m.normal != null)
+                m.normal.normalizeLocal();
             return m;
         }
 
         // normal from closest point to circ
         double dist = Math.sqrt(distSqrd);
-        m.penetration = b.radius - dist;
-        m.normal = distanceToClosestPoint.scale(1.0 / dist);
+        // defensive guard for tiny distances
+        if (dist < 1e-6) {
+            // fallback: point from rect center to circle center
+            Vector2 fallback = b.pos.sub(r.pos);
+            if (fallback.lengthSquared() < 1e-6) {
+                // choose up
+                m.normal = new Vector2(0, -1);
+            } else {
+                m.normal = fallback.scale(1.0 / fallback.length());
+            }
+            m.penetration = b.radius;
+        } else {
+            m.penetration = b.radius - dist;
+            m.normal = distanceToClosestPoint.scale(1.0 / dist);
+        }
+        // normalize
+        if (m.normal != null)
+            m.normal.normalizeLocal();
         m.contacts.add(closestPoint);
 
         return m;

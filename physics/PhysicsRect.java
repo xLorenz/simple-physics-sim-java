@@ -1,4 +1,4 @@
-package src;
+package physics;
 
 import java.awt.Graphics;
 
@@ -6,7 +6,7 @@ public class PhysicsRect extends PhysicsObject {
     public int width;
     public int height;
 
-    PhysicsRect(int width, int height, double mass, long id) {
+    public PhysicsRect(int width, int height, double mass, long id) {
         super(id);
         this.width = width;
         this.height = height;

@@ -1,12 +1,11 @@
-package src;
+package physics;
 
 import java.awt.Graphics;
 
 public class PhysicsBall extends PhysicsObject {
     public int radius;
-    public double elasticity;
 
-    PhysicsBall(int radius, double elasticity, double mass, long id) {
+    public PhysicsBall(int radius, double elasticity, double mass, long id) {
         super(id);
         this.radius = radius;
         this.elasticity = elasticity;
@@ -19,7 +18,7 @@ public class PhysicsBall extends PhysicsObject {
 
         pos.addLocal(vel.scale(dt));
         // friction
-        vel.x *= 0.9;
+        vel.x *= 0.99;
     }
 
     @Override

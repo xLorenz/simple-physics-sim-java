@@ -1,4 +1,4 @@
-package src;
+package physics;
 
 public class Collision {
 

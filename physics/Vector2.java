@@ -1,4 +1,4 @@
-package src;
+package physics;
 
 public class Vector2 {
     public double x, y;
@@ -81,4 +81,26 @@ public class Vector2 {
         y = oldX;
         return this;
     }
+
+    public Vector2 rotate(double angleDegrees) {
+        double angle = Math.toRadians(angleDegrees);
+        double cos = Math.cos(angle);
+        double sin = Math.sin(angle);
+
+        double newX = x * cos - y * sin;
+        double newY = x * sin + y * cos;
+
+        return new Vector2(newX, newY);
+    }
+
+    public void rotateLocal(double angleDegrees) {
+        double angle = Math.toRadians(angleDegrees);
+        double cos = Math.cos(angle);
+        double sin = Math.sin(angle);
+
+        x = x * cos - y * sin;
+        y = x * sin + y * cos;
+
+    }
+
 }

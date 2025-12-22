@@ -38,15 +38,15 @@ public class PhysicsRect extends PhysicsObject {
     }
 
     @Override
-    public int[] getOccuppiedChunks(int chunkDim) {
+    public int[] getOccuppiedChunks(int chunkDim, Vector2 mapAnchor) {
         int[] result = new int[4];
         int[] corners = getCorners();
 
         // corners = [left, top, right, bottom]
-        int left = corners[0];
-        int top = corners[1];
-        int right = corners[2];
-        int bottom = corners[3];
+        int left = corners[0] - (int) mapAnchor.x;
+        int top = corners[1] - (int) mapAnchor.y;
+        int right = corners[2] - (int) mapAnchor.x;
+        int bottom = corners[3] - (int) mapAnchor.y;
 
         // minCx, maxCx, minCy, maxCy
         result[0] = (int) Math.floor((double) left / chunkDim);

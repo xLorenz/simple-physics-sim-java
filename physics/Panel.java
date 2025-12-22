@@ -26,7 +26,7 @@ public class Panel extends JPanel implements ActionListener {
     Panel() {
         random = new Random();
         handler = new PhysicsHandler(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        handler.addRect(SCR_WIDTH / 2, SCR_HEIGHT - 100, 750, 60);
+        handler.addRect(SCR_WIDTH / 2, SCR_HEIGHT - 100, SCR_WIDTH, 60);
         handler.addRect(100, SCR_HEIGHT / 2, 60, 750);
         handler.addRect(900, SCR_HEIGHT / 2, 60, 750);
         handler.addBall(SCR_WIDTH / 2, SCR_HEIGHT / 2, 100, 0);
@@ -49,6 +49,9 @@ public class Panel extends JPanel implements ActionListener {
 
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g;
+        // antialias
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         draw(g);
     }
     // ----------------------------------------//
@@ -70,8 +73,10 @@ public class Panel extends JPanel implements ActionListener {
         // accumulate and run fixed-step updates for deterministic physics
         accumulator += dt;
         while (accumulator >= FIXED_STEP) {
-            handler.updatePhysics(FIXED_STEP); // implement physics update using fixed step
-            accumulator -= FIXED_STEP;
+            for (int i = 0; i < 3; i++) {
+                handler.updatePhysics(FIXED_STEP); // implement physics update using fixed step
+                accumulator -= FIXED_STEP;
+            }
         }
     }
 

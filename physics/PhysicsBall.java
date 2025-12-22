@@ -28,13 +28,13 @@ public class PhysicsBall extends PhysicsObject {
     }
 
     @Override
-    public int[] getOccuppiedChunks(int chunkDim) {
+    public int[] getOccuppiedChunks(int chunkDim, Vector2 mapAnchor) {
 
         int[] result = new int[4];
-        result[0] = (int) Math.floor((pos.x - radius) / chunkDim);
-        result[1] = (int) Math.floor((pos.x + radius) / chunkDim);
-        result[2] = (int) Math.floor((pos.y - radius) / chunkDim);
-        result[3] = (int) Math.floor((pos.y + radius) / chunkDim);
+        result[0] = (int) Math.floor((pos.x - mapAnchor.x - radius) / chunkDim);
+        result[1] = (int) Math.floor((pos.x - mapAnchor.x + radius) / chunkDim);
+        result[2] = (int) Math.floor((pos.y - mapAnchor.y - radius) / chunkDim);
+        result[3] = (int) Math.floor((pos.y - mapAnchor.y + radius) / chunkDim);
 
         return result;
     }

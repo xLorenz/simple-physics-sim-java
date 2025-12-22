@@ -49,7 +49,7 @@ public abstract class PhysicsObject {
 
     public abstract void draw(Graphics g);
 
-    public abstract int[] getOccuppiedChunks(int chunkDim);
+    public abstract int[] getOccuppiedChunks(int chunkDim, Vector2 mapAnchor);
 
     abstract Manifold collide(PhysicsObject other);
 

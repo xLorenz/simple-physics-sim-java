@@ -75,6 +75,16 @@ public class Vector2 {
         return this;
     }
 
+    public Vector2 normalize() {
+        Vector2 normal = new Vector2(this.x, this.y);
+        double len = normal.length();
+        if (len != 0) {
+            normal.x /= len;
+            normal.y /= len;
+        }
+        return normal;
+    }
+
     public Vector2 perpLocal() {
         double oldX = x;
         x = -y;
@@ -101,6 +111,11 @@ public class Vector2 {
         x = x * cos - y * sin;
         y = x * sin + y * cos;
 
+    }
+
+    public void round() {
+        x = (int) x;
+        y = (int) y;
     }
 
 }

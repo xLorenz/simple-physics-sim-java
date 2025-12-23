@@ -4,7 +4,7 @@ public class Collision {
 
     public static Manifold circleCircle(PhysicsBall b1, PhysicsBall b2) {
 
-        Vector2 distance = b1.pos.sub(b2.pos);
+        Vector2 distance = b1.pos.sub(b2.pos); // b2 -> b1
         int rSum = b1.radius + b2.radius;
 
         double distanceSqrd = distance.lengthSquared();
@@ -14,6 +14,8 @@ public class Collision {
         double dist = Math.sqrt(distanceSqrd);
 
         Manifold m = new Manifold();
+        m.o1 = b1;
+        m.o2 = b2;
         m.collided = true;
 
         // same center or extremely close — pick a stable normal
@@ -24,7 +26,7 @@ public class Collision {
         } else {
             m.penetration = rSum - dist;
             m.normal = distance.scale(1.0 / dist);
-            m.contacts.add(b1.pos.add(m.normal.scale(b1.radius - m.penetration * 0.5)));
+            m.contacts.add(b2.pos.add(m.normal.scale(b2.radius - m.penetration * 0.5)));
         }
 
         // ensure normal is normalized
@@ -59,6 +61,8 @@ public class Collision {
         }
 
         Manifold m = new Manifold();
+        m.o1 = b;
+        m.o2 = r;
         m.collided = true;
 
         // if circle is exactly on the border ( closest == center )
@@ -155,6 +159,8 @@ public class Collision {
             return Manifold.noCollision();
 
         Manifold m = new Manifold();
+        m.o1 = r1;
+        m.o2 = r2;
         m.collided = true;
 
         if (overlapX < overlapY) {

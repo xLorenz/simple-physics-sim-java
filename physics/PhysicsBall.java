@@ -13,28 +13,28 @@ public class PhysicsBall extends PhysicsObject {
     }
 
     @Override
-    public void update(double gravity, double dt) {
-        vel.y += gravity * dt;
-
-        pos.addLocal(vel.scale(dt));
-        // friction
-        vel.x *= 0.99;
+    public void update(double dt) {
     }
 
     @Override
-    public void draw(Graphics g) {
+    public void draw(Graphics g, Vector2 offset) {
+        double x = pos.x + offset.x;
+        double y = pos.y + offset.y;
+
         g.setColor(displayColor);
-        g.fillOval((int) (pos.x - radius), (int) (pos.y - radius), radius * 2, radius * 2);
+        g.fillOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
+        g.setColor(displayColor.darker());
+        g.drawOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
     }
 
     @Override
-    public int[] getOccuppiedChunks(int chunkDim, Vector2 mapAnchor) {
+    public int[] getOccuppiedChunks(int chunkDim) {
 
         int[] result = new int[4];
-        result[0] = (int) Math.floor((pos.x - mapAnchor.x - radius) / chunkDim);
-        result[1] = (int) Math.floor((pos.x - mapAnchor.x + radius) / chunkDim);
-        result[2] = (int) Math.floor((pos.y - mapAnchor.y - radius) / chunkDim);
-        result[3] = (int) Math.floor((pos.y - mapAnchor.y + radius) / chunkDim);
+        result[0] = (int) Math.floor((pos.x - radius) / chunkDim);
+        result[1] = (int) Math.floor((pos.x + radius) / chunkDim);
+        result[2] = (int) Math.floor((pos.y - radius) / chunkDim);
+        result[3] = (int) Math.floor((pos.y + radius) / chunkDim);
 
         return result;
     }

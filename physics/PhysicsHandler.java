@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class PhysicsHandler {
 
-    public double gravity = 980;
+    public Vector2 gravity = new Vector2(0, 980);
 
     public Boundary boundaries;
 
@@ -26,6 +26,11 @@ public class PhysicsHandler {
     public List<PhysicsObject> objects = new ArrayList<>();
     public List<PhysicsObject> addQueue = new ArrayList<>();
     public List<PhysicsObject> removeQueue = new ArrayList<>();
+
+    public List<Manifold> frameManifolds = new ArrayList<>();
+
+    public static int POS_ITERS = 2;
+    public static int SOLVER_ITERS = 20;
 
     // store debug info for the most recent collisions so the renderer can draw them
     public static class CollisionDebug {
@@ -77,8 +82,8 @@ public class PhysicsHandler {
     }
 
     public void updateObjectsChunk(PhysicsObject o) {
-        int ncx = (int) (Math.floor(o.pos.x - (int) mapAnchor.x / chunkDimension));
-        int ncy = (int) (Math.floor(o.pos.y - (int) mapAnchor.y / chunkDimension));
+        int ncx = (int) (Math.floor(o.pos.x / chunkDimension));
+        int ncy = (int) (Math.floor(o.pos.y / chunkDimension));
 
         if (ncx == o.cx && ncy == o.cy)
             return;
@@ -86,7 +91,7 @@ public class PhysicsHandler {
         // if the chunk changed, and the object is large, it will occupy different
         // chunks
 
-        int[] occuppiedChunks = o.getOccuppiedChunks(chunkDimension, mapAnchor);
+        int[] occuppiedChunks = o.getOccuppiedChunks(chunkDimension);
         int minCx = occuppiedChunks[0];
         int maxCx = occuppiedChunks[1];
         int minCy = occuppiedChunks[2];
@@ -95,7 +100,7 @@ public class PhysicsHandler {
         // remove from olds
         for (int cx = o.cMinCx; cx <= o.cMaxCx; cx++) {
             for (int cy = o.cMinCy; cy <= o.cMaxCy; cy++) {
-                Chunk old = getOrCreateChunk(cx, cy);
+                Chunk old = chunks.get(keyFor(cx, cy));
                 if (old != null)
                     old.objects.remove(o);
             }
@@ -118,6 +123,251 @@ public class PhysicsHandler {
     }
 
     public void updatePhysics(double dt) {
+
+        proccessAditionsAndRemovals();
+
+        // update chunks and clear contacts
+        for (PhysicsObject o : objects) {
+            updateObjectsChunk(o);
+            o.contacts.clear();
+        }
+
+        // update objects positions and velocities
+        for (PhysicsObject o : objects) {
+            if (!o.stationary && !o.supported)
+                o.addForce(gravity, dt);
+        }
+
+        for (PhysicsObject o : objects) {
+            if (!o.stationary)
+                o.integrateVelocity(dt);
+        }
+
+        // check by pairs
+        java.util.HashSet<Long> processedPairs = new java.util.HashSet<>();
+        recentCollisions.clear();
+
+        // iterate objects
+        for (PhysicsObject o1 : objects) {
+            for (int cx = o1.cMinCx; cx <= o1.cMaxCx; cx++) {
+                for (int cy = o1.cMinCy; cy <= o1.cMaxCy; cy++) {
+                    Chunk ch = chunks.get(keyFor(cx, cy));
+                    if (ch == null)
+                        continue;
+                    for (PhysicsObject o2 : ch.objects) {
+                        if (o1.id <= o2.id)
+                            continue;
+                        // check unordered pair only once
+                        long a = Math.min(o1.id, o2.id);
+                        long b = Math.max(o1.id, o2.id);
+                        long pairKey = (a << 32) | (b & 0xffffffffL);
+
+                        if (processedPairs.contains(pairKey))
+                            continue; // already handled this unordered pair in another chunk
+                        processedPairs.add(pairKey);
+                        Manifold m = o1.collide(o2); // normal o2 -> o1
+                        if (m.collided) {
+                            frameManifolds.add(m);
+                        }
+                    }
+                }
+            }
+        }
+        // canonicalize normals create per-object contacts
+        for (Manifold m : frameManifolds) {
+            canonicalizeNormal(m);
+            m.o1.addContact(m.o2, m.normal, m.penetration);
+            m.o2.addContact(m.o1, m.normal.scale(-1), m.penetration);
+        }
+
+        // small positional correction passes
+        for (int p = 0; p < POS_ITERS; p++) {
+            for (Manifold m : frameManifolds)
+                positionalCorrection(m);
+        }
+
+        // warm start
+        for (Manifold m : frameManifolds)
+            warmStart(m);
+
+        // iterative velocity solver
+        for (int it = 0; it < SOLVER_ITERS; it++) {
+            for (Manifold m : frameManifolds)
+                resolveVelocityImpulse(m);
+        }
+
+        frameManifolds.clear();
+
+        for (PhysicsObject o : objects) {
+            if (!o.stationary)
+                o.updateSupportState();
+            o.update(dt);
+            // o.pos.addLocal(mapAnchorVelocityScaled); // camera
+        }
+
+        updateAnchor(dt);
+    }
+
+    public void canonicalizeNormal(Manifold m) {
+
+        // Ensure manifold.normal points from o1 -> o2 (handleCollision expects this)
+        if (m.normal == null || m.normal.lengthSquared() < 1e-9) {
+            // fallback: use vector from o1 -> o2
+            Vector2 dir = m.o2.pos.sub(m.o1.pos);
+            if (dir.lengthSquared() < 1e-9) {
+                // unresolvable direction; pick up
+                m.normal = new Vector2(0, -1);
+            } else {
+                m.normal = dir.scale(1.0 / dir.length());
+            }
+        } else {
+            Vector2 dir = m.o2.pos.sub(m.o1.pos); // vector from o1 to o2
+            double dot = m.normal.dot(dir);
+            if (dot < 0) {
+                // flip normal so it points from o1 to o2
+                m.normal = m.normal.scale(-1.0);
+            }
+            // normalize to be safe
+            m.normal.normalizeLocal();
+        }
+
+    }
+
+    public void positionalCorrection(Manifold m) {
+        PhysicsObject a = m.o1;
+        PhysicsObject b = m.o2;
+        double invA = (a.mass == 0.0) ? 0.0 : 1.0 / a.mass;
+        double invB = (b.mass == 0.0) ? 0.0 : 1.0 / b.mass;
+        double invSum = invA + invB;
+        if (invSum == 0.0)
+            return;
+
+        double slop = 0.01;
+        double percent = 0.2;
+        double correctionMag = Math.max(m.penetration - slop, 0.0) / invSum * percent;
+        correctionMag = Math.min(correctionMag, Math.max(m.penetration * 0.5, 0.001));
+
+        Vector2 corr = m.normal.scale(correctionMag);
+        a.pos.subLocal(corr.scale(invA));
+        b.pos.addLocal(corr.scale(invB));
+    }
+
+    public void warmStart(Manifold m) {
+        if (m.accumulatedNormalImpulse == 0 && m.accumulatedTangentImpulse == 0)
+            return;
+        PhysicsObject a = m.o1, b = m.o2;
+        double invA = (a.mass == 0) ? 0 : 1.0 / a.mass;
+        double invB = (b.mass == 0) ? 0 : 1.0 / b.mass;
+
+        // normal impulse
+        Vector2 Pn = m.normal.scale(m.accumulatedNormalImpulse);
+        a.vel.subLocal(Pn.scale(invA));
+        b.vel.addLocal(Pn.scale(invB));
+
+        // tangent impulse
+        Vector2 tangent = new Vector2(-m.normal.y, m.normal.x);
+        Vector2 Pt = tangent.scale(m.accumulatedTangentImpulse);
+        a.vel.subLocal(Pt.scale(invA));
+        b.vel.addLocal(Pt.scale(invB));
+    }
+
+    public void resolveVelocityImpulse(Manifold m) {
+        PhysicsObject a = m.o1, b = m.o2;
+        double invA = (a.mass == 0) ? 0 : 1.0 / a.mass;
+        double invB = (b.mass == 0) ? 0 : 1.0 / b.mass;
+        double invSum = invA + invB;
+        if (invSum == 0)
+            return;
+
+        Vector2 n = m.normal;
+
+        // relative velocity
+        Vector2 rv = b.vel.sub(a.vel);
+        double velAlongNormal = rv.dot(n);
+
+        // Normal impulse
+        double e = (a.elasticity + b.elasticity < 1.0) ? a.elasticity + b.elasticity : 1.0;
+        if (velAlongNormal > 0) {
+            // objects separating — no normal impulse
+        } else {
+            double j = -(1.0 + e) * velAlongNormal;
+            j /= invSum;
+
+            // accumulate and clamp (optional), use m.accumulatedNormalImpulse
+            double oldImpulse = m.accumulatedNormalImpulse;
+            double newImpulse = oldImpulse + j;
+            // if you want to clamp to non-negative:
+            if (newImpulse < 0)
+                newImpulse = 0;
+            double appliedImpulse = newImpulse - oldImpulse;
+            m.accumulatedNormalImpulse = newImpulse;
+
+            Vector2 P = n.scale(appliedImpulse);
+            a.vel.subLocal(P.scale(invA));
+            b.vel.addLocal(P.scale(invB));
+        }
+
+        // Friction (Coulomb)
+        // recompute relative velocity after normal impulse applied
+        rv = b.vel.sub(a.vel);
+        Vector2 tangent = rv.sub(n.scale(rv.dot(n)));
+        double tLen2 = tangent.lengthSquared();
+        if (tLen2 > 1e-9) {
+            tangent.normalizeLocal();
+            double jt = -rv.dot(tangent);
+            jt /= invSum;
+
+            // approximate friction coefficient
+            double mu = Math.sqrt(a.friction * b.friction); // combine mu
+            double maxFriction = mu * m.accumulatedNormalImpulse;
+
+            double oldT = m.accumulatedTangentImpulse;
+            double newT = oldT + jt;
+            // clamp
+            if (Math.abs(newT) > maxFriction) {
+                newT = Math.signum(newT) * maxFriction;
+            }
+            double appliedT = newT - oldT;
+            m.accumulatedTangentImpulse = newT;
+
+            Vector2 Pt = tangent.scale(appliedT);
+            a.vel.subLocal(Pt.scale(invA));
+            b.vel.addLocal(Pt.scale(invB));
+        }
+    }
+
+    public void updateAnchor(double dt) {
+        // move camera
+        mapAnchor.addLocal(mapAnchorVelocityScaled); // move anchor
+
+        if (mainObject != null) {
+            // update anchor velocity
+            if (mainObject.pos.x < boundaries.left) {
+                mapAnchorVelocity.x += anchorFollowVelocity * dt;
+            }
+            if (mainObject.pos.x > boundaries.right) {
+                mapAnchorVelocity.x -= anchorFollowVelocity * dt;
+            }
+            if (mainObject.pos.y < boundaries.top) {
+                mapAnchorVelocity.y += anchorFollowVelocity * dt;
+            }
+            if (mainObject.pos.y > boundaries.bottom) {
+                mapAnchorVelocity.y -= anchorFollowVelocity * dt;
+            }
+        }
+
+        // friction and scaling
+        if (mapAnchorVelocity.lengthSquared() > 0.00000001) {
+            mapAnchorVelocityScaled = mapAnchorVelocity.scale(dt);
+            mapAnchorVelocityScaled.round();
+            mapAnchorVelocity.scaleLocal(anchorFollowFriction);
+        } else {
+            mapAnchorVelocityScaled.set(0, 0);
+            mapAnchorVelocity.set(0, 0);
+        }
+    }
+
+    public void proccessAditionsAndRemovals() {
 
         // first, process any pending additions/removals queued from other threads
         synchronized (addQueue) {
@@ -146,153 +396,10 @@ public class PhysicsHandler {
             }
         }
 
-        // update chunks
-        for (PhysicsObject o : objects) {
-            updateObjectsChunk(o);
-        }
-
-        // check by pairs
-        java.util.HashSet<Long> processedPairs = new java.util.HashSet<>();
-        recentCollisions.clear();
-
-        // iterate objects
-        for (PhysicsObject o1 : objects) {
-            for (int cx = o1.cMinCx; cx <= o1.cMaxCx; cx++) {
-                for (int cy = o1.cMinCy; cy <= o1.cMaxCy; cy++) {
-                    Chunk ch = chunks.get(keyFor(cx, cy));
-                    if (ch == null)
-                        continue;
-                    for (PhysicsObject o2 : ch.objects) {
-                        if (o1.id <= o2.id)
-                            continue; // check unordered pair only once
-                        long pairKey = ((o1.id) << 32) ^ o2.id;
-                        if (processedPairs.contains(pairKey))
-                            continue; // already handled this unordered pair in another chunk
-                        processedPairs.add(pairKey);
-                        handleCollision(o1, o2);
-                    }
-                }
-            }
-        }
-
-        // update objects positions
-        for (PhysicsObject o : objects) {
-            o.update(gravity, dt);
-            o.pos.addLocal(mapAnchorVelocityScaled); // camera
-        }
-
-        // move camera
-        mapAnchor.addLocal(mapAnchorVelocityScaled); // move anchor
-
-        if (mainObject != null) {
-            // update anchor velocity
-            if (mainObject.pos.x < boundaries.left) {
-                mapAnchorVelocity.x += anchorFollowVelocity;
-            }
-            if (mainObject.pos.x > boundaries.right) {
-                mapAnchorVelocity.x -= anchorFollowVelocity;
-            }
-            if (mainObject.pos.y < boundaries.top) {
-                mapAnchorVelocity.y += anchorFollowVelocity;
-            }
-            if (mainObject.pos.y > boundaries.bottom) {
-                mapAnchorVelocity.y -= anchorFollowVelocity;
-            }
-        }
-
-        // friction and scaling
-        if (mapAnchorVelocity.lengthSquared() > 0.00000001) {
-            mapAnchorVelocityScaled = mapAnchorVelocity.scale(dt);
-            mapAnchorVelocityScaled.round();
-            mapAnchorVelocity.scaleLocal(anchorFollowFriction);
-        } else {
-            mapAnchorVelocityScaled.set(0, 0);
-            mapAnchorVelocity.set(0, 0);
-        }
-    }
-
-    public void handleCollision(PhysicsObject o1, PhysicsObject o2) {
-        Manifold m = o1.collide(o2);
-
-        if (!m.collided)
-            return;
-
-        o1.notifyListener(o2, m);
-        o2.notifyListener(o1, m);
-
-        // Ensure manifold.normal points from o1 -> o2 (handleCollision expects this)
-        if (m.normal == null || m.normal.lengthSquared() < 1e-9) {
-            // fallback: use vector from o1 -> o2
-            Vector2 dir = o2.pos.sub(o1.pos);
-            if (dir.lengthSquared() < 1e-9) {
-                // unresolvable direction; pick up
-                m.normal = new Vector2(0, -1);
-            } else {
-                m.normal = dir.scale(1.0 / dir.length());
-            }
-        } else {
-            Vector2 dir = o2.pos.sub(o1.pos); // vector from o1 to o2
-            double dot = m.normal.dot(dir);
-            if (dot < 0) {
-                // flip normal so it points from o1 to o2
-                m.normal = m.normal.scale(-1.0);
-            }
-            // normalize to be safe
-            m.normal.normalizeLocal();
-        }
-
-        // (debug logs removed) collision detected
-
-        // inverse masses
-        double invMass1 = (o1.mass == 0.0) ? 0.0 : 1.0 / o1.mass;
-        double invMass2 = (o2.mass == 0.0) ? 0.0 : 1.0 / o2.mass;
-        double invMassSum = invMass1 + invMass2;
-
-        if (invMassSum == 0.0)
-            return; // both inmovable
-
-        // resolve velocity using an impulse, use elasticity
-        Vector2 relVel = o2.vel.sub(o1.vel);
-        double velAlongNormal = relVel.dot(m.normal); // positive if separating
-
-        // if vels are separating already, don't apply impulse
-        if (velAlongNormal <= 0.0) {
-            double e = Math.max(o1.elasticity, o2.elasticity);
-
-            // compute impulse scalar
-            double j = -(1.0 + e) * velAlongNormal;
-            j /= (invMassSum);
-
-            // apply impulse
-            Vector2 impulse = m.normal.scale(j);
-
-            o1.vel.subLocal(impulse.scale(invMass1));
-            o2.vel.addLocal(impulse.scale(invMass2));
-        }
-
-        // positional correction
-        final double percent = 0.8; // 20% left to avoid jitter
-        final double slop = 0.01; // small penetration allowance
-        double correctionMag = Math.max(m.penetration - slop, 0.0) * percent / (invMassSum);
-        // safety clamp — don't attempt to correct unbelievably large amounts in a
-        // single step
-        correctionMag = Math.min(correctionMag, Math.max(m.penetration * 0.5, 0.001));
-        Vector2 correction = m.normal.scale(correctionMag);
-
-        // move objs proportionally to inverse mass
-        o1.pos.subLocal(correction.scale(invMass1));
-        o2.pos.addLocal(correction.scale(invMass2));
-
-        // record debug info for rendering
-        Vector2 contact = m.contacts.size() > 0 ? m.contacts.get(0)
-                : new Vector2((o1.pos.x + o2.pos.x) * 0.5, (o1.pos.y + o2.pos.y) * 0.5);
-        recentCollisions
-                .add(new CollisionDebug(o1.id, o2.id, contact, new Vector2(m.normal.x, m.normal.y), m.penetration));
-
     }
 
     public void addBall(int x, int y, int radius, double elasticity) {
-        PhysicsBall ball = new PhysicsBall(radius, elasticity, 0.5, 0);
+        PhysicsBall ball = new PhysicsBall(radius, elasticity, 0.01, 0);
         ball.pos.x = x;
         ball.pos.y = y;
         synchronized (addQueue) {
@@ -337,7 +444,7 @@ public class PhysicsHandler {
             snapshot = new ArrayList<>(objects);
         }
         for (PhysicsObject o : snapshot) {
-            o.draw(g);
+            o.draw(g, mapAnchor);
         }
     }
 
@@ -373,14 +480,12 @@ public class PhysicsHandler {
         for (int i = 0; i < scrHeight / chunkDimension; i++) {
             g.drawLine(0, (i * chunkDimension) + (int) mapAnchor.y, scrWidth, (i * chunkDimension) + (int) mapAnchor.y); // horizontal
         }
-
-        // draw recorded chunks
-        // drawRecordedChunks(g);
+        // drawRecordedChunks(g, true);
     }
 
-    public void drawRecordedChunks(Graphics g) {
-        g.setColor(Color.yellow);
+    public void drawRecordedChunks(Graphics g, boolean fillActiveChunks) {
         for (Map.Entry<Long, Chunk> entry : chunks.entrySet()) {
+            g.setColor(Color.yellow);
             long key = entry.getKey();
             Chunk chunk = entry.getValue();
 
@@ -392,10 +497,13 @@ public class PhysicsHandler {
             int worldX = cx * chunkDimension + (int) mapAnchor.x;
 
             g.drawRect(worldX, worldY, chunkDimension, chunkDimension);
-            if (!chunk.objects.isEmpty()) {
+
+            if (fillActiveChunks) {
                 g.setColor(Color.green);
-                g.fillRect(worldX, worldY, chunkDimension, chunkDimension);
-                g.setColor(Color.yellow);
+                if (!chunk.objects.isEmpty()) {
+                    g.setColor(Color.green);
+                    g.fillRect(worldX, worldY, chunkDimension, chunkDimension);
+                }
             }
         }
     }

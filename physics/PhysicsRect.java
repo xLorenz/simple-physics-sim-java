@@ -12,17 +12,23 @@ public class PhysicsRect extends PhysicsObject {
         this.height = height;
         this.mass = mass;
         this.elasticity = 0.0;
+        this.stationary = true;
     }
 
     @Override
-    public void update(double gravity, double dt) {
+    public void update(double dt) {
 
     }
 
     @Override
-    public void draw(Graphics g) {
+    public void draw(Graphics g, Vector2 offset) {
+        double x = pos.x + offset.x;
+        double y = pos.y + offset.y;
+
         g.setColor(displayColor);
-        g.fillRect((int) (pos.x - width / 2), (int) (pos.y - height / 2), width, height);
+        g.fillRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+        g.setColor(displayColor.darker());
+        g.drawRect((int) (x - width / 2), (int) (y - height / 2), width, height);
     }
 
     public int[] getCorners() {
@@ -38,15 +44,15 @@ public class PhysicsRect extends PhysicsObject {
     }
 
     @Override
-    public int[] getOccuppiedChunks(int chunkDim, Vector2 mapAnchor) {
+    public int[] getOccuppiedChunks(int chunkDim) {
         int[] result = new int[4];
         int[] corners = getCorners();
 
         // corners = [left, top, right, bottom]
-        int left = corners[0] - (int) mapAnchor.x;
-        int top = corners[1] - (int) mapAnchor.y;
-        int right = corners[2] - (int) mapAnchor.x;
-        int bottom = corners[3] - (int) mapAnchor.y;
+        int left = corners[0];
+        int top = corners[1];
+        int right = corners[2];
+        int bottom = corners[3];
 
         // minCx, maxCx, minCy, maxCy
         result[0] = (int) Math.floor((double) left / chunkDim);

@@ -14,6 +14,11 @@ public class SimCanvas extends Canvas implements Runnable {
     private int frames;
     private long fpsTimer = System.nanoTime();
 
+    private long lastTime;
+    private double dt;
+    static final double FIXED_STEP = 1.0 / 60.0;
+    private double accumulator = 0.0;
+
     private boolean running = true;
     private Dimension size = new Dimension(1000, 800);
 
@@ -48,28 +53,33 @@ public class SimCanvas extends Canvas implements Runnable {
     }
 
     private void setUpSim() {
-        handler.chunkDimension = 10;
-        handler.anchorFollowVelocity = 1000;
-        handler.anchorFollowFriction = 0.99;
+        handler.chunkDimension = 25;
+        handler.anchorFollowVelocity = 100;
+        handler.anchorFollowFriction = 0.5;
 
         // floor
-        handler.addRect(size.width / 2, size.height - 50, size.width - 100, 50);
+        handler.addRect(size.width / 2, size.height, size.width - 100, 100);
         // walls
-        handler.addRect(50, size.height / 2, 50, size.height - 50);
-        handler.addRect(size.width - 50, size.height / 2, 50, size.height - 50);
+        handler.addRect(100, size.height / 2, 50, size.height * 2);
+        handler.addRect(size.width - 100, size.height / 2, 50, size.height * 2);
 
     }
 
     @Override
     public void run() {
-        long last = System.nanoTime();
 
         while (running) {
             long now = System.nanoTime();
-            float dt = (now - last) * 1e-9f;
-            last = now;
+            double dt = (now - lastTime) * 1e-9f; // seconds
+            lastTime = now;
+            dt = Math.min(dt, 0.25); // avoid large jump
 
-            update(dt);
+            accumulator += dt;
+            while (accumulator >= FIXED_STEP) {
+                update(FIXED_STEP);
+                accumulator -= FIXED_STEP;
+            }
+
             render();
 
             frames++;
@@ -79,7 +89,7 @@ public class SimCanvas extends Canvas implements Runnable {
                 fpsTimer = now;
 
                 JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
-                frame.setTitle("Project | FPS: " + fps);
+                frame.setTitle("Project | FPS: " + fps + " | Count: " + handler.objects.size());
             }
         }
     }
@@ -119,7 +129,7 @@ public class SimCanvas extends Canvas implements Runnable {
 
     }
 
-    private void update(float dt) {
+    private void update(double dt) {
         handler.updatePhysics(dt);
     }
 
@@ -127,8 +137,17 @@ public class SimCanvas extends Canvas implements Runnable {
         @Override
         public void keyPressed(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-                handler.addBall(size.width / 2 - 100 + random.nextInt(200), size.height / 2 - 100 + random.nextInt(200),
-                        5, 0.9);
+                for (int i = 0; i < 5; i++) {
+                    handler.addBall((int) (mousePos.x - handler.mapAnchor.x), (int) (mousePos.y - handler.mapAnchor.y),
+                            5,
+                            0.5);
+                }
+            }
+            if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
+                PhysicsBall b = new PhysicsBall(50, 0.2, 5, 0);
+                b.pos.set((int) (mousePos.x - handler.mapAnchor.x), (int) (mousePos.y - handler.mapAnchor.y));
+                b.displayColor = Color.darkGray;
+                handler.addBall(b);
             }
             if (e.getKeyCode() == KeyEvent.VK_W) {
                 handler.mapAnchorVelocity.y += handler.anchorFollowVelocity;

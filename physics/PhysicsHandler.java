@@ -399,7 +399,7 @@ public class PhysicsHandler {
     }
 
     public void addBall(int x, int y, int radius, double elasticity) {
-        PhysicsBall ball = new PhysicsBall(radius, elasticity, 0.01, 0);
+        PhysicsBall ball = new PhysicsBall(radius, elasticity, 0.05, 0);
         ball.pos.x = x;
         ball.pos.y = y;
         synchronized (addQueue) {

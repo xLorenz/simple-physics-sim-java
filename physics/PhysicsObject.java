@@ -8,7 +8,7 @@ import java.util.Random;
 
 public abstract class PhysicsObject {
 
-    public static final double SUPPORT_NORMAL_Y = 1;
+    public static final double SUPPORT_NORMAL_Y = 1.0;
     public static final double SUPPORT_VELOCITY_EPS = 0.01;
     public static final double PENETRATION_EPS = 0.0001;
     public static final double VEL_EPS = 0.0001;

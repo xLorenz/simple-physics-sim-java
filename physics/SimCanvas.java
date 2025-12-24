@@ -29,6 +29,11 @@ public class SimCanvas extends Canvas implements Runnable {
 
     private Random random = new Random();
 
+    private boolean leftClick = false;
+    private boolean rightClick = false;
+
+    private double actionCooldown = 0.5;
+
     private static final RenderingHints HINTS = new RenderingHints(
             RenderingHints.KEY_ANTIALIASING,
             RenderingHints.VALUE_ANTIALIAS_ON);
@@ -58,10 +63,10 @@ public class SimCanvas extends Canvas implements Runnable {
         handler.anchorFollowFriction = 0.5;
 
         // floor
-        handler.addRect(size.width / 2, size.height, size.width - 100, 100);
+        // handler.addRect(size.width / 2, size.height, size.width - 100, 100);
         // walls
-        handler.addRect(100, size.height / 2, 50, size.height * 2);
-        handler.addRect(size.width - 100, size.height / 2, 50, size.height * 2);
+        // handler.addRect(100, size.height / 2, 50, size.height * 2);
+        // handler.addRect(size.width - 100, size.height / 2, 50, size.height * 2);
 
     }
 
@@ -81,6 +86,7 @@ public class SimCanvas extends Canvas implements Runnable {
             }
 
             render();
+            place(dt);
 
             frames++;
             if (now - fpsTimer >= 1_000_000_000L) {
@@ -111,7 +117,7 @@ public class SimCanvas extends Canvas implements Runnable {
                     // draw game
 
                     handler.displayChunkBorders(g, size.width, size.height);
-                    // handler.drawRecordedChunks(g);
+                    // handler.drawRecordedChunks(g, true);
                     handler.displayObjects(g);
                     // collision debug overlay
                     // handler.displayCollisionDebug(g);
@@ -133,13 +139,56 @@ public class SimCanvas extends Canvas implements Runnable {
         handler.updatePhysics(dt);
     }
 
+    private void place(double dt) {
+
+        if (actionCooldown > 0) {
+            actionCooldown -= dt;
+        } else {
+            actionCooldown = 0;
+
+            if (leftClick) {
+                boolean allowed = true;
+                for (PhysicsObject o : handler.objects) {
+                    if (o.pos.sub(mousePos.sub(handler.mapAnchor)).lengthSquared() < 100) {
+                        allowed = false;
+                    }
+                }
+                if (allowed) {
+                    handler.addRect((int) (mousePos.x - handler.mapAnchor.x),
+                            (int) (mousePos.y - handler.mapAnchor.y), handler.chunkDimension,
+                            handler.chunkDimension);
+                    actionCooldown = 0.05;
+                }
+            }
+            if (rightClick) {
+                boolean allowed = true;
+                int dx = (int) Math.floor((mousePos.x - handler.mapAnchor.x) / handler.chunkDimension);
+                int dy = (int) Math.floor((mousePos.y - handler.mapAnchor.y) / handler.chunkDimension);
+
+                int x = (int) (dx * handler.chunkDimension + handler.chunkDimension / 2);
+                int y = (int) (dy * handler.chunkDimension + handler.chunkDimension / 2);
+
+                for (PhysicsObject o : handler.objects) {
+                    if (o.pos.x == x && o.pos.y == y) {
+                        allowed = false;
+                    }
+                }
+                if (allowed) {
+
+                    handler.addRect(x, y, handler.chunkDimension, handler.chunkDimension);
+                    actionCooldown = 0.05;
+                }
+            }
+        }
+    }
+
     public class MyKeyAdapter extends KeyAdapter {
         @Override
         public void keyPressed(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                 for (int i = 0; i < 5; i++) {
                     handler.addBall((int) (mousePos.x - handler.mapAnchor.x), (int) (mousePos.y - handler.mapAnchor.y),
-                            5,
+                            10,
                             0.5);
                 }
             }
@@ -149,6 +198,13 @@ public class SimCanvas extends Canvas implements Runnable {
                 b.displayColor = Color.darkGray;
                 handler.addBall(b);
             }
+            if (e.getKeyCode() == KeyEvent.VK_C) {
+                for (PhysicsObject o : handler.objects) {
+                    handler.removeObject(o);
+                }
+                setUpSim();
+            }
+
             if (e.getKeyCode() == KeyEvent.VK_W) {
                 handler.mapAnchorVelocity.y += handler.anchorFollowVelocity;
             }
@@ -169,10 +225,22 @@ public class SimCanvas extends Canvas implements Runnable {
 
         @Override
         public void mousePressed(MouseEvent e) {
+            if (e.getButton() == 1) {
+                leftClick = true;
+            }
+            if (e.getButton() == 3) {
+                rightClick = true;
+            }
         }
 
         @Override
         public void mouseReleased(MouseEvent e) {
+            if (e.getButton() == 1) {
+                leftClick = false;
+            }
+            if (e.getButton() == 3) {
+                rightClick = false;
+            }
         }
 
         @Override

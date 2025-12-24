@@ -55,10 +55,10 @@ public class PhysicsRect extends PhysicsObject {
         int bottom = corners[3];
 
         // minCx, maxCx, minCy, maxCy
-        result[0] = (int) Math.floor((double) left / chunkDim);
-        result[1] = (int) Math.floor((double) right / chunkDim);
-        result[2] = (int) Math.floor((double) top / chunkDim);
-        result[3] = (int) Math.floor((double) bottom / chunkDim);
+        result[0] = (int) Math.floor((double) left / chunkDim) - 1;
+        result[1] = (int) Math.floor((double) right / chunkDim) + 1;
+        result[2] = (int) Math.floor((double) top / chunkDim) - 1;
+        result[3] = (int) Math.floor((double) bottom / chunkDim) + 1;
 
         return result;
     }

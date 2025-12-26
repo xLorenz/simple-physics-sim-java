@@ -1,5 +1,6 @@
 package physics;
 
+import java.awt.Color;
 import java.awt.Graphics;
 
 public class PhysicsRect extends PhysicsObject {
@@ -13,6 +14,7 @@ public class PhysicsRect extends PhysicsObject {
         this.mass = mass;
         this.elasticity = 0.0;
         this.stationary = true;
+        this.invMass = getInverseMass();
     }
 
     @Override
@@ -24,11 +26,20 @@ public class PhysicsRect extends PhysicsObject {
     public void draw(Graphics g, Vector2 offset) {
         double x = pos.x + offset.x;
         double y = pos.y + offset.y;
-
-        g.setColor(displayColor);
+        if (!sleeping) {
+            g.setColor(displayColor);
+        } else {
+            g.setColor(displayColor.darker());
+        }
         g.fillRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+
         g.setColor(displayColor.darker());
         g.drawRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+        if (!supported) {
+
+            g.setColor(Color.green);
+            g.drawRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+        }
     }
 
     public int[] getCorners() {

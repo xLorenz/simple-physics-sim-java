@@ -108,8 +108,9 @@ public class Vector2 {
         double cos = Math.cos(angle);
         double sin = Math.sin(angle);
 
-        x = x * cos - y * sin;
-        y = x * sin + y * cos;
+        double dx = x * cos - y * sin;
+        double dy = x * sin + y * cos;
+        set(dx, dy);
 
     }
 

@@ -14,6 +14,7 @@ https://github.com/user-attachments/assets/eef61410-b232-4e8a-bff5-b7d5e09e16e8
 - Contacts information collection
 - Sleeping objects
 - Supported state for objects
+- Camera position and scale modification
 
 ## The Process
 I developed this physics engine with the goal of using it for game design later. I wanted data structures from where i can just inherit to a playable character and have it run flawlessly. 
@@ -25,9 +26,11 @@ It doesn't offer much, but it's open for expansion in the future. I'll be person
 3. That's it. If you want to interact with te physics currently you'll have to modify [Panel.java](https://github.com/xLorenz/simple-physics-sim-java/blob/05bf181484559db0e55515ce2def97f44173aa5e/physics/Panel.java).
 
 Spawn circles with SPACE and CTRL, spawn rects with RIGHT and LEFT clicks.
+Spawn a camera tracked circle with LSHIFT + SPACE.
 Delete objects with LSHIFT + RIGHT and LEFT clicks.
 Clear the map with C.
 Toggle debug display with X.
+Zoom in/out with UP/DOWN.
 
 ## Previews
 

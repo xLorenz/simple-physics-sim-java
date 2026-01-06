@@ -1,4 +1,4 @@
-package physics;
+package src;
 
 import javax.swing.JFrame;
 

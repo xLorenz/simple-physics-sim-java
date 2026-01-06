@@ -22,6 +22,7 @@ public class PhysicsHandler {
     public double anchorFollowFriction = 0.99;
     public int anchorFollowRadius = 0; // radius from the center the main object is allowed to be
     public Vector2 screenCenter = new Vector2();
+    public double displayScale = 1.0;
 
     public Map<Long, Chunk> chunks = new HashMap<>();
     public List<PhysicsObject> objects = new ArrayList<>();
@@ -365,7 +366,7 @@ public class PhysicsHandler {
             mainObject = null;
         if (mainObject != null) {
             // update anchor velocity
-            _tmpC.setSub(mainObject.pos.add(mapAnchor), screenCenter);
+            _tmpC.setSub(mainObject.pos.scale(displayScale).add(mapAnchor.scale(displayScale)), screenCenter);
             double diff = _tmpC.length();
             if (diff > anchorFollowRadius) {
                 mapAnchorVelocity.subLocal(_tmpC.scale(anchorFollowVelocity));
@@ -423,6 +424,10 @@ public class PhysicsHandler {
 
     }
 
+    public Vector2 getMapPos(Vector2 screenPos) {
+        return screenPos.sub(mapAnchor.scale(displayScale)).scale(1 / displayScale);
+    }
+
     public void addBall(Vector2 pos, int radius, double elasticity, double mass) {
         PhysicsBall ball = new PhysicsBall(radius, elasticity, mass, 0);
         ball.pos = pos;
@@ -477,7 +482,7 @@ public class PhysicsHandler {
             snapshot = new ArrayList<>(objects);
         }
         for (PhysicsObject o : snapshot) {
-            o.draw(g, mapAnchor);
+            o.draw(g, mapAnchor, displayScale);
         }
     }
 
@@ -490,22 +495,24 @@ public class PhysicsHandler {
             snapshot = new ArrayList<>(objects);
         }
         for (PhysicsObject o : snapshot) {
-            o.drawDebug(g, mapAnchor);
+            o.drawDebug(g, mapAnchor, displayScale);
         }
     }
 
     public void displayChunkBorders(Graphics g, int scrWidth, int scrHeight) {
         // draw anchor
-        g.setColor(Color.blue);
-        g.drawOval((int) mapAnchor.x - 2, (int) mapAnchor.y - 2, 4, 4);
+        g.setColor(Color.red);
+        g.fillOval((int) ((mapAnchor.x) * displayScale) - 2, (int) ((mapAnchor.y) * displayScale) - 2, 4, 4);
         // draw grid
         g.setColor(Color.gray);
         for (int i = 0; i < scrWidth / chunkDimension; i++) {
-            g.drawLine((i * chunkDimension) + (int) mapAnchor.x, 0, (i * chunkDimension) + (int) mapAnchor.x,
+            g.drawLine((int) (((i * chunkDimension) + (int) mapAnchor.x) * displayScale), 0,
+                    (int) (((i * chunkDimension) + (int) mapAnchor.x) * displayScale),
                     scrHeight); // vertical
         }
         for (int i = 0; i < scrHeight / chunkDimension; i++) {
-            g.drawLine(0, (i * chunkDimension) + (int) mapAnchor.y, scrWidth, (i * chunkDimension) + (int) mapAnchor.y); // horizontal
+            g.drawLine(0, (int) (((i * chunkDimension) + (int) mapAnchor.y) * displayScale), scrWidth,
+                    (int) (((i * chunkDimension) + (int) mapAnchor.y) * displayScale)); // horizontal
         }
     }
 
@@ -519,16 +526,17 @@ public class PhysicsHandler {
             int cy = (int) key;
 
             // convert chunk coordinates to world coordinates
-            int worldY = cy * chunkDimension + (int) mapAnchor.y;
-            int worldX = cx * chunkDimension + (int) mapAnchor.x;
+            int worldY = (int) ((cy * chunkDimension + (int) mapAnchor.y) * displayScale);
+            int worldX = (int) ((cx * chunkDimension + (int) mapAnchor.x) * displayScale);
 
-            g.drawRect(worldX, worldY, chunkDimension, chunkDimension);
+            g.drawRect(worldX, worldY, (int) (chunkDimension * displayScale), (int) (chunkDimension * displayScale));
 
             if (fillActiveChunks) {
                 g.setColor(Color.green);
                 if (!chunk.objects.isEmpty()) {
-                    g.setColor(Color.green);
-                    g.fillRect(worldX, worldY, chunkDimension, chunkDimension);
+                    g.setColor(Color.green.darker());
+                    g.fillRect(worldX, worldY, (int) (chunkDimension * displayScale),
+                            (int) (chunkDimension * displayScale));
                 }
             }
         }

@@ -21,14 +21,14 @@ public class PhysicsBall extends PhysicsObject {
     }
 
     @Override
-    public void draw(Graphics2D g, Vector2 offset) {
+    public void draw(Graphics2D g, Vector2 offset, double scale) {
         int cx = (int) (pos.x + offset.x);
         int cy = (int) (pos.y + offset.y);
         int xi = cx - radius;
         int yi = cy - radius;
         int diam = radius * 2;
 
-        oval.setFrame(xi, yi, diam, diam);
+        oval.setFrame(xi * scale, yi * scale, diam * scale, diam * scale);
 
         g.setColor(displayColor);
         g.fill(oval);
@@ -37,14 +37,14 @@ public class PhysicsBall extends PhysicsObject {
     }
 
     @Override
-    public void drawDebug(Graphics2D g, Vector2 offset) {
+    public void drawDebug(Graphics2D g, Vector2 offset, double scale) {
         int cx = (int) (pos.x + offset.x);
         int cy = (int) (pos.y + offset.y);
         int xi = cx - radius;
         int yi = cy - radius;
         int diam = radius * 2;
 
-        oval.setFrame(xi, yi, diam, diam);
+        oval.setFrame(xi * scale, yi * scale, diam * scale, diam * scale);
 
         if (sleeping) {
             g.setColor(displayColorDarker);

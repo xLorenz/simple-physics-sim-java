@@ -145,9 +145,9 @@ public abstract class PhysicsObject {
     public void update(double dt) {
     }
 
-    public abstract void draw(Graphics2D g, Vector2 offset);
+    public abstract void draw(Graphics2D g, Vector2 offset, double scale);
 
-    public abstract void drawDebug(Graphics2D g, Vector2 offset);
+    public abstract void drawDebug(Graphics2D g, Vector2 offset, double scale);
 
     public abstract int[] getOccuppiedChunks(int chunkDim);
 

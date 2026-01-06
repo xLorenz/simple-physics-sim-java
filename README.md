@@ -18,8 +18,16 @@ It doesn't offer much, but it's open for expansion in the future. I'll be person
 2. Run the main function
 3. That's it. If you want to interact with te physics currently you'll have to modify [Panel.java](https://github.com/xLorenz/simple-physics-sim-java/blob/05bf181484559db0e55515ce2def97f44173aa5e/physics/Panel.java)
 
-## Preview
+## Previews
 
 
-https://github.com/user-attachments/assets/0f2a5b1a-3e9b-4129-96ca-186f541884f9
+https://github.com/user-attachments/assets/b7bd5191-2315-471c-bebc-7b02d88d927e
+
+
+
+https://github.com/user-attachments/assets/52c9492f-679e-420b-898a-46b823369406
+
+
+
+https://github.com/user-attachments/assets/3773c8af-73d3-48e0-afca-47d9a9fcc454
 

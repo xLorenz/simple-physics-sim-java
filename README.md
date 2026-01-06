@@ -2,7 +2,8 @@
 
 A very simple version of a physics engine for game development. Fully developed in java with its own Vector2 implementation. 
 
-https://github.com/user-attachments/assets/52c9492f-679e
+
+https://github.com/user-attachments/assets/52c9492f-679e-420b-898a-46b823369406
 
 ## Features 
 - Colision detection and reaction between two objects
@@ -32,8 +33,6 @@ Toggle debug display with X.
 
 https://github.com/user-attachments/assets/b7bd5191-2315-471c-bebc-7b02d88d927e
 
-
--420b-898a-46b823369406
 
 
 

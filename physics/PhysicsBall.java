@@ -1,5 +1,6 @@
 package physics;
 
+import java.awt.Color;
 import java.awt.Graphics;
 
 public class PhysicsBall extends PhysicsObject {
@@ -10,6 +11,7 @@ public class PhysicsBall extends PhysicsObject {
         this.radius = radius;
         this.elasticity = elasticity;
         this.mass = mass;
+        this.invMass = getInverseMass();
     }
 
     @Override
@@ -25,6 +27,27 @@ public class PhysicsBall extends PhysicsObject {
         g.fillOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
         g.setColor(displayColor.darker());
         g.drawOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
+    }
+
+    @Override
+    public void drawDebug(Graphics g, Vector2 offset) {
+        double x = pos.x + offset.x;
+        double y = pos.y + offset.y;
+
+        g.setColor(displayColor);
+        g.fillOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
+        g.setColor(displayColor.darker());
+        g.drawOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
+        if (sleeping) {
+
+            g.setColor(displayColor.darker());
+            g.fillOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
+        }
+        if (!supported) {
+
+            g.setColor(Color.green);
+            g.drawOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
+        }
     }
 
     @Override

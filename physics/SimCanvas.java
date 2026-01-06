@@ -31,6 +31,8 @@ public class SimCanvas extends Canvas implements Runnable {
 
     private boolean leftClick = false;
     private boolean rightClick = false;
+    private boolean shift = false;
+    private boolean debug = false;
 
     private double actionCooldown = 0.5;
 
@@ -58,15 +60,15 @@ public class SimCanvas extends Canvas implements Runnable {
     }
 
     private void setUpSim() {
-        handler.chunkDimension = 25;
+        handler.chunkDimension = 20;
         handler.anchorFollowVelocity = 100;
         handler.anchorFollowFriction = 0.5;
 
         // floor
-        // handler.addRect(size.width / 2, size.height, size.width - 100, 100);
+        handler.addRect(new Vector2(size.width / 2, size.height), size.width - 100, 25);
         // walls
-        // handler.addRect(100, size.height / 2, 50, size.height * 2);
-        // handler.addRect(size.width - 100, size.height / 2, 50, size.height * 2);
+        handler.addRect(new Vector2(100, size.height / 2), 50, size.height * 2);
+        handler.addRect(new Vector2(size.width - 100, size.height / 2), 50, size.height * 2);
 
     }
 
@@ -115,12 +117,13 @@ public class SimCanvas extends Canvas implements Runnable {
                     g.fillRect(0, 0, size.width, size.height);
 
                     // draw game
-
-                    handler.displayChunkBorders(g, size.width, size.height);
-                    // handler.drawRecordedChunks(g, true);
-                    handler.displayObjects(g);
-                    // collision debug overlay
-                    // handler.displayCollisionDebug(g);
+                    if (debug) {
+                        handler.displayChunkBorders(g, size.width, size.height);
+                        handler.drawRecordedChunks(g, true);
+                        handler.displayObjectsDebug(g);
+                    } else {
+                        handler.displayObjects(g);
+                    }
 
                 } finally {
                     g.dispose();
@@ -147,36 +150,51 @@ public class SimCanvas extends Canvas implements Runnable {
             actionCooldown = 0;
 
             if (leftClick) {
-                boolean allowed = true;
-                for (PhysicsObject o : handler.objects) {
-                    if (o.pos.sub(mousePos.sub(handler.mapAnchor)).lengthSquared() < 100) {
-                        allowed = false;
+                if (shift) {
+                    for (PhysicsObject o : handler.objects) {
+                        if (mousePos.sub(handler.mapAnchor).sub(o.pos).lengthSquared() < 5000) {
+                            handler.removeObject(o);
+                        }
                     }
-                }
-                if (allowed) {
-                    handler.addRect((int) (mousePos.x - handler.mapAnchor.x),
-                            (int) (mousePos.y - handler.mapAnchor.y), handler.chunkDimension,
-                            handler.chunkDimension);
-                    actionCooldown = 0.05;
+                } else {
+                    boolean allowed = true;
+                    for (PhysicsObject o : handler.objects) {
+                        if (o.pos.sub(mousePos.sub(handler.mapAnchor)).lengthSquared() < 100) {
+                            allowed = false;
+                        }
+                    }
+                    if (allowed) {
+                        handler.addRect(mousePos.sub(handler.mapAnchor), handler.chunkDimension,
+                                handler.chunkDimension, 0.0, 0.0, true);
+                        actionCooldown = 0.05;
+                    }
                 }
             }
             if (rightClick) {
-                boolean allowed = true;
-                int dx = (int) Math.floor((mousePos.x - handler.mapAnchor.x) / handler.chunkDimension);
-                int dy = (int) Math.floor((mousePos.y - handler.mapAnchor.y) / handler.chunkDimension);
-
-                int x = (int) (dx * handler.chunkDimension + handler.chunkDimension / 2);
-                int y = (int) (dy * handler.chunkDimension + handler.chunkDimension / 2);
-
-                for (PhysicsObject o : handler.objects) {
-                    if (o.pos.x == x && o.pos.y == y) {
-                        allowed = false;
+                if (shift) {
+                    for (PhysicsObject o : handler.objects) {
+                        if (mousePos.sub(handler.mapAnchor).sub(o.pos).lengthSquared() < 100) {
+                            handler.removeObject(o);
+                        }
                     }
-                }
-                if (allowed) {
+                } else {
+                    boolean allowed = true;
+                    int dx = (int) Math.floor((mousePos.x - handler.mapAnchor.x) / handler.chunkDimension);
+                    int dy = (int) Math.floor((mousePos.y - handler.mapAnchor.y) / handler.chunkDimension);
 
-                    handler.addRect(x, y, handler.chunkDimension, handler.chunkDimension);
-                    actionCooldown = 0.05;
+                    int x = (int) (dx * handler.chunkDimension + handler.chunkDimension / 2);
+                    int y = (int) (dy * handler.chunkDimension + handler.chunkDimension / 2);
+
+                    for (PhysicsObject o : handler.objects) {
+                        if (o.pos.x == x && o.pos.y == y) {
+                            allowed = false;
+                        }
+                    }
+                    if (allowed) {
+
+                        handler.addRect(new Vector2(x, y), handler.chunkDimension, handler.chunkDimension);
+                        actionCooldown = 0.05;
+                    }
                 }
             }
         }
@@ -186,23 +204,36 @@ public class SimCanvas extends Canvas implements Runnable {
         @Override
         public void keyPressed(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-                for (int i = 0; i < 5; i++) {
-                    handler.addBall((int) (mousePos.x - handler.mapAnchor.x), (int) (mousePos.y - handler.mapAnchor.y),
+                if (!shift) {
+                    for (int i = 0; i < 5; i++) {
+                        handler.addBall(mousePos.sub(handler.mapAnchor),
+                                10,
+                                0.8,
+                                0.05);
+                    }
+                } else {
+                    handler.addBall(mousePos.sub(handler.mapAnchor),
                             10,
-                            0.5);
+                            0.1,
+                            0.05);
+
                 }
             }
             if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
-                PhysicsBall b = new PhysicsBall(50, 0.2, 5, 0);
-                b.pos.set((int) (mousePos.x - handler.mapAnchor.x), (int) (mousePos.y - handler.mapAnchor.y));
-                b.displayColor = Color.darkGray;
-                handler.addBall(b);
+                handler.addBall(mousePos.sub(handler.mapAnchor),
+                        50,
+                        0.8,
+                        5,
+                        Color.darkGray);
             }
             if (e.getKeyCode() == KeyEvent.VK_C) {
                 for (PhysicsObject o : handler.objects) {
                     handler.removeObject(o);
                 }
                 setUpSim();
+            }
+            if (e.getKeyCode() == KeyEvent.VK_X) {
+                debug = !debug;
             }
 
             if (e.getKeyCode() == KeyEvent.VK_W) {
@@ -216,6 +247,16 @@ public class SimCanvas extends Canvas implements Runnable {
             }
             if (e.getKeyCode() == KeyEvent.VK_D) {
                 handler.mapAnchorVelocity.x -= handler.anchorFollowVelocity;
+            }
+            if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                shift = true;
+            }
+        }
+
+        @Override
+        public void keyReleased(KeyEvent e) {
+            if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                shift = false;
             }
         }
 

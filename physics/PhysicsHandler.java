@@ -29,37 +29,25 @@ public class PhysicsHandler {
 
     public List<Manifold> frameManifolds = new ArrayList<>();
 
+    public java.util.HashSet<Long> processedPairs = new java.util.HashSet<>();
+
     public static int POS_ITERS = 2;
     public static int SOLVER_ITERS = 20;
 
-    // store debug info for the most recent collisions so the renderer can draw them
-    public static class CollisionDebug {
-        public long a, b;
-        public Vector2 contactPoint;
-        public Vector2 normal;
-        public double penetration;
-
-        CollisionDebug(long a, long b, Vector2 contactPoint, Vector2 normal, double penetration) {
-            this.a = a;
-            this.b = b;
-            this.contactPoint = contactPoint;
-            this.normal = normal;
-            this.penetration = penetration;
-        }
-    }
-
-    public List<CollisionDebug> recentCollisions = new ArrayList<>();
+    public static double POSCORR_SLOP = 0.01; // allowance
+    public static double POSCORR_PERCENT = 0.1; // return
+    public static double MIN_VEL_FOR_RESTITUTION = 8.0;
 
     private long nextId = 1L; // ids to keep track of objects
 
-    public PhysicsHandler(int right, int top, int left, int bottom) {
-        this.boundaries = new Boundary(right, top, left, bottom);
+    public PhysicsHandler(int left, int top, int right, int bottom) {
+        this.boundaries = new Boundary(left, top, right, bottom);
     }
 
     public class Boundary {
-        int right, top, left, bottom;
+        int left, top, right, bottom;
 
-        Boundary(int right, int top, int left, int bottom) {
+        Boundary(int left, int top, int right, int bottom) {
             this.left = left;
             this.right = right;
             this.top = top;
@@ -68,7 +56,7 @@ public class PhysicsHandler {
     }
 
     public void setBoundary(int left, int top, int right, int bottom) {
-        this.boundaries = new Boundary(left, right, top, bottom);
+        this.boundaries = new Boundary(left, top, right, bottom);
     }
 
     // get key for a chunk
@@ -129,23 +117,27 @@ public class PhysicsHandler {
         // update chunks and clear contacts
         for (PhysicsObject o : objects) {
             updateObjectsChunk(o);
-            o.contacts.clear();
+            if (!o.stationary)
+                o.updateSupportState();
+
+            if (!o.sleeping)
+                o.contacts.clear();
         }
 
         // update objects positions and velocities
         for (PhysicsObject o : objects) {
-            if (!o.stationary && !o.supported)
+            if (!o.stationary && !o.supported && !o.sleeping) {
                 o.addForce(gravity, dt);
+            }
         }
 
         for (PhysicsObject o : objects) {
-            if (!o.stationary)
+            if (!o.stationary && !o.sleeping)
                 o.integrateVelocity(dt);
         }
 
         // check by pairs
-        java.util.HashSet<Long> processedPairs = new java.util.HashSet<>();
-        recentCollisions.clear();
+        processedPairs.clear();
 
         // iterate objects
         for (PhysicsObject o1 : objects) {
@@ -155,9 +147,14 @@ public class PhysicsHandler {
                     if (ch == null)
                         continue;
                     for (PhysicsObject o2 : ch.objects) {
+
+                        // skip sleepy objects
+                        if (o1.sleeping && o2.sleeping) {
+                            continue;
+                        }
+                        // check unordered pair only once
                         if (o1.id <= o2.id)
                             continue;
-                        // check unordered pair only once
                         long a = Math.min(o1.id, o2.id);
                         long b = Math.max(o1.id, o2.id);
                         long pairKey = (a << 32) | (b & 0xffffffffL);
@@ -187,8 +184,8 @@ public class PhysicsHandler {
         }
 
         // warm start
-        for (Manifold m : frameManifolds)
-            warmStart(m);
+        // for (Manifold m : frameManifolds)
+        // warmStart(m);
 
         // iterative velocity solver
         for (int it = 0; it < SOLVER_ITERS; it++) {
@@ -199,10 +196,11 @@ public class PhysicsHandler {
         frameManifolds.clear();
 
         for (PhysicsObject o : objects) {
-            if (!o.stationary)
-                o.updateSupportState();
+            o.updateSleepState(); // +1 sleepFrames if vel == threshold
             o.update(dt);
-            // o.pos.addLocal(mapAnchorVelocityScaled); // camera
+            if (!o.stationary) {
+                // System.out.println("vel: " + o.vel.getString());
+            }
         }
 
         updateAnchor(dt);
@@ -236,28 +234,25 @@ public class PhysicsHandler {
     public void positionalCorrection(Manifold m) {
         PhysicsObject a = m.o1;
         PhysicsObject b = m.o2;
-        double invA = (a.mass == 0.0) ? 0.0 : 1.0 / a.mass;
-        double invB = (b.mass == 0.0) ? 0.0 : 1.0 / b.mass;
+        double invA = a.invMass;
+        double invB = b.invMass;
         double invSum = invA + invB;
         if (invSum == 0.0)
             return;
 
-        double slop = 0.01;
-        double percent = 0.2;
-        double correctionMag = Math.max(m.penetration - slop, 0.0) / invSum * percent;
+        double correctionMag = Math.max(m.penetration - POSCORR_SLOP, 0.0) / invSum * POSCORR_PERCENT;
         correctionMag = Math.min(correctionMag, Math.max(m.penetration * 0.5, 0.001));
 
-        Vector2 corr = m.normal.scale(correctionMag);
-        a.pos.subLocal(corr.scale(invA));
-        b.pos.addLocal(corr.scale(invB));
+        a.pos.subLocal(m.normal.scale(correctionMag * invA));
+        b.pos.addLocal(m.normal.scale(correctionMag * invB));
     }
 
     public void warmStart(Manifold m) {
         if (m.accumulatedNormalImpulse == 0 && m.accumulatedTangentImpulse == 0)
             return;
         PhysicsObject a = m.o1, b = m.o2;
-        double invA = (a.mass == 0) ? 0 : 1.0 / a.mass;
-        double invB = (b.mass == 0) ? 0 : 1.0 / b.mass;
+        double invA = a.invMass;
+        double invB = b.invMass;
 
         // normal impulse
         Vector2 Pn = m.normal.scale(m.accumulatedNormalImpulse);
@@ -273,20 +268,27 @@ public class PhysicsHandler {
 
     public void resolveVelocityImpulse(Manifold m) {
         PhysicsObject a = m.o1, b = m.o2;
-        double invA = (a.mass == 0) ? 0 : 1.0 / a.mass;
-        double invB = (b.mass == 0) ? 0 : 1.0 / b.mass;
+        double invA = a.invMass;
+        double invB = b.invMass;
         double invSum = invA + invB;
         if (invSum == 0)
             return;
 
-        Vector2 n = m.normal;
-
         // relative velocity
         Vector2 rv = b.vel.sub(a.vel);
-        double velAlongNormal = rv.dot(n);
+        double velAlongNormal = rv.dot(m.normal);
 
-        // Normal impulse
-        double e = (a.elasticity + b.elasticity < 1.0) ? a.elasticity + b.elasticity : 1.0;
+        // wake objects (use magnitude of relative speed so approaching or separating
+        // wakes)
+        a.wake(Math.abs(velAlongNormal), m.penetration);
+        b.wake(Math.abs(velAlongNormal), m.penetration);
+
+        // Normal impulse - use conservative minimum restitution between objects using
+        // threshold velocity
+        double e = Math.abs(velAlongNormal) < MIN_VEL_FOR_RESTITUTION ? 0.0
+                : Math.min(1.0, Math.min(a.elasticity, b.elasticity));
+        // System.out.println(velAlongNormal + " " + e);
+
         if (velAlongNormal > 0) {
             // objects separating — no normal impulse
         } else {
@@ -297,20 +299,20 @@ public class PhysicsHandler {
             double oldImpulse = m.accumulatedNormalImpulse;
             double newImpulse = oldImpulse + j;
             // if you want to clamp to non-negative:
-            if (newImpulse < 0)
+            if (newImpulse < 0.0)
                 newImpulse = 0;
             double appliedImpulse = newImpulse - oldImpulse;
             m.accumulatedNormalImpulse = newImpulse;
 
-            Vector2 P = n.scale(appliedImpulse);
-            a.vel.subLocal(P.scale(invA));
-            b.vel.addLocal(P.scale(invB));
+            a.vel.subLocal(m.normal.scale(appliedImpulse * invA));
+            b.vel.addLocal(m.normal.scale(appliedImpulse * invB));
         }
 
         // Friction (Coulomb)
         // recompute relative velocity after normal impulse applied
+
         rv = b.vel.sub(a.vel);
-        Vector2 tangent = rv.sub(n.scale(rv.dot(n)));
+        Vector2 tangent = rv.sub(m.normal.scale(rv.dot(m.normal)));
         double tLen2 = tangent.lengthSquared();
         if (tLen2 > 1e-9) {
             tangent.normalizeLocal();
@@ -359,7 +361,7 @@ public class PhysicsHandler {
         // friction and scaling
         if (mapAnchorVelocity.lengthSquared() > 0.00000001) {
             mapAnchorVelocityScaled = mapAnchorVelocity.scale(dt);
-            mapAnchorVelocityScaled.round();
+            mapAnchorVelocityScaled.roundLocal();
             mapAnchorVelocity.scaleLocal(anchorFollowFriction);
         } else {
             mapAnchorVelocityScaled.set(0, 0);
@@ -381,6 +383,7 @@ public class PhysicsHandler {
         synchronized (removeQueue) {
             if (!removeQueue.isEmpty()) {
                 for (PhysicsObject o : removeQueue) {
+                    o.forceWake();
                     objects.remove(o);
                     // also remove from any chunks the object occupied
                     for (int cx = o.cMinCx; cx <= o.cMaxCx; cx++) {
@@ -389,6 +392,9 @@ public class PhysicsHandler {
                             if (ch == null)
                                 continue;
                             ch.objects.remove(o);
+                            for (PhysicsObject o2 : ch.objects) {
+                                o2.forceWake();
+                            }
                         }
                     }
                 }
@@ -398,40 +404,48 @@ public class PhysicsHandler {
 
     }
 
-    public void addBall(int x, int y, int radius, double elasticity) {
-        PhysicsBall ball = new PhysicsBall(radius, elasticity, 0.05, 0);
-        ball.pos.x = x;
-        ball.pos.y = y;
-        synchronized (addQueue) {
-            ball.id = nextId++;
-            addQueue.add(ball);
-        }
+    public void addBall(Vector2 pos, int radius, double elasticity, double mass) {
+        PhysicsBall ball = new PhysicsBall(radius, elasticity, mass, 0);
+        ball.pos = pos;
+        addObject(ball);
     }
 
-    public void addBall(PhysicsBall ball) {
-        synchronized (addQueue) {
-            if (!addQueue.contains(ball) && !objects.contains(ball)) {
-                ball.id = nextId++;
-                addQueue.add(ball);
-            }
-        }
+    public void addBall(Vector2 pos, int radius, double elasticity, double mass, Color color) {
+        PhysicsBall ball = new PhysicsBall(radius, elasticity, mass, 0);
+        ball.pos = pos;
+        ball.displayColor = color;
+        addObject(ball);
     }
 
-    public void addRect(int x, int y, int width, int height) {
+    public void addRect(Vector2 center, int width, int height) {
         PhysicsRect rect = new PhysicsRect(width, height, 0, 0);
-        rect.pos.x = x;
-        rect.pos.y = y;
-        rect.elasticity = 0.0;
+        rect.pos = center;
+        addObject(rect);
+    }
+
+    public void addRect(Vector2 center, int width, int height, double mass, double elasticity, boolean stationary) {
+        PhysicsRect rect = new PhysicsRect(width, height, mass, 0);
+        rect.pos = center;
+        rect.elasticity = elasticity;
+        rect.stationary = stationary;
+        addObject(rect);
+    }
+
+    public void addObject(PhysicsObject o) {
         synchronized (addQueue) {
-            rect.id = nextId++;
-            addQueue.add(rect);
+            if (!addQueue.contains(o) && !objects.contains(o)) {
+                o.id = nextId++;
+                addQueue.add(o);
+            }
         }
     }
 
     public void removeObject(PhysicsObject o) {
         synchronized (removeQueue) {
-            if (!removeQueue.contains(o))
+            if (!removeQueue.contains(o)) {
+                o.forceWake();
                 removeQueue.add(o);
+            }
         }
     }
 
@@ -448,29 +462,23 @@ public class PhysicsHandler {
         }
     }
 
-    // render recent collision debug info (contact points + normals)
-    public void displayCollisionDebug(Graphics g) {
-        Color old = g.getColor();
-        g.setColor(Color.magenta);
-        for (CollisionDebug cd : recentCollisions) {
-            int x = (int) Math.round(cd.contactPoint.x);
-            int y = (int) Math.round(cd.contactPoint.y);
-            // contact point
-            g.fillOval(x - 3, y - 3, 6, 6);
-            // normal line
-            int nx = (int) Math.round(x + cd.normal.x * 30);
-            int ny = (int) Math.round(y + cd.normal.y * 30);
-            g.drawLine(x, y, nx, ny);
-            // penetration label
-            g.drawString(String.format("%.2f", cd.penetration), x + 4, y - 4);
+    public void displayObjectsDebug(Graphics g) {
+        // iterate over a snapshot to avoid ConcurrentModificationException if objects
+        // are
+        // mutated from another thread
+        java.util.List<PhysicsObject> snapshot;
+        synchronized (objects) {
+            snapshot = new ArrayList<>(objects);
         }
-        g.setColor(old);
+        for (PhysicsObject o : snapshot) {
+            o.drawDebug(g, mapAnchor);
+        }
     }
 
     public void displayChunkBorders(Graphics g, int scrWidth, int scrHeight) {
         // draw anchor
         g.setColor(Color.blue);
-        g.drawOval((int) mapAnchor.x - 5, (int) mapAnchor.y - 5, 10, 10);
+        g.drawOval((int) mapAnchor.x - 2, (int) mapAnchor.y - 2, 4, 4);
         // draw grid
         g.setColor(Color.gray);
         for (int i = 0; i < scrWidth / chunkDimension; i++) {
@@ -480,7 +488,6 @@ public class PhysicsHandler {
         for (int i = 0; i < scrHeight / chunkDimension; i++) {
             g.drawLine(0, (i * chunkDimension) + (int) mapAnchor.y, scrWidth, (i * chunkDimension) + (int) mapAnchor.y); // horizontal
         }
-        // drawRecordedChunks(g, true);
     }
 
     public void drawRecordedChunks(Graphics g, boolean fillActiveChunks) {

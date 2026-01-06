@@ -8,22 +8,26 @@ import java.util.Random;
 
 public abstract class PhysicsObject {
 
-    public static final double SUPPORT_NORMAL_Y = 1.0;
-    public static final double SUPPORT_VELOCITY_EPS = 0.01;
-    public static final double PENETRATION_EPS = 0.0001;
-    public static final double VEL_EPS = 0.0001;
+    public static double SUPPORT_NORMAL_Y = 0.75;
+    public static double VEL_EPS = 10.0;
+    public static int MAX_SLEEP_FRAMES = 50;
+    public static double WAKE_VEL_THRESHOLD = 1.0;
+    public static double WAKE_PENETRATION_THRESHOLD = 0.5;
 
     public Vector2 pos = new Vector2(); // pos, for all objects, its center
     public int cx, cy; // center chunkPos
     public Vector2 vel = new Vector2(); // velocity
     public int cMinCx, cMaxCx, cMinCy, cMaxCy; // chunks boundingBox for big objects
     public double mass;
+    public double invMass = Double.NaN;
     public double elasticity;
     public double friction = 0.0;
     public long id; // identifier
 
     public boolean stationary = false;
     public boolean supported = false;
+    public boolean sleeping = false;
+    public int sleepFrames = 0;
 
     public List<Contact> contacts = new ArrayList<Contact>();
 
@@ -32,6 +36,16 @@ public abstract class PhysicsObject {
 
     PhysicsObject(long id) {
         this.id = id;
+    }
+
+    public double getInverseMass() {
+        return (mass == 0) ? 0 : 1.0 / mass;
+
+    }
+
+    public double getInverseMass(double m) {
+        return (m == 0) ? 0 : 1.0 / m;
+
     }
 
     public void randomizeColor() {
@@ -73,25 +87,66 @@ public abstract class PhysicsObject {
     }
 
     public void integrateVelocity(double dt) {
-        pos.addLocal(vel.scale(dt));
         if (vel.lengthSquared() < VEL_EPS)
             vel.set(0, 0);
+        pos.addLocal(vel.scale(dt));
     }
 
     public void updateSupportState() {
         supported = false;
+        Vector2 normal = new Vector2();
         for (Contact c : contacts) {
-            if (c.normal.y > SUPPORT_NORMAL_Y && vel.y <= SUPPORT_VELOCITY_EPS && c.penetration > PENETRATION_EPS) {
-                supported = true;
-                break;
+            if (c.normal.y > 0) {
+                normal.addLocal(c.normal);
             }
         }
+        if (normal.normalize().y > SUPPORT_NORMAL_Y) {
+            supported = true;
+        }
+    }
+
+    public void forceWake() {
+        if (!sleeping || stationary)
+            return;
+        sleepFrames = 0;
+        sleeping = false;
+        forceWakeContacts();
+    }
+
+    public void wake(double relVelAlongNormal, double penetration) {
+        if (sleeping) {
+            if (relVelAlongNormal > WAKE_VEL_THRESHOLD || penetration > WAKE_PENETRATION_THRESHOLD) {
+                sleeping = false;
+                sleepFrames = 0;
+                forceWakeContacts();
+            }
+        }
+    }
+
+    public void forceWakeContacts() {
+        for (Contact c : contacts) {
+            c.other.forceWake(); // wake contacted objects
+        }
+    }
+
+    public void updateSleepState() {
+        if (vel.lengthSquared() < VEL_EPS && !sleeping && (supported || stationary)) {
+            sleepFrames++;
+            if (sleepFrames >= MAX_SLEEP_FRAMES) {
+                sleeping = true;
+            }
+        }
+        // if (vel.lengthSquared() > VEL_EPS && sleeping) {
+        // forceWake();
+        // }
     }
 
     public void update(double dt) {
     }
 
     public abstract void draw(Graphics g, Vector2 offset);
+
+    public abstract void drawDebug(Graphics g, Vector2 offset);
 
     public abstract int[] getOccuppiedChunks(int chunkDim);
 

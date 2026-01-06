@@ -108,14 +108,27 @@ public class Vector2 {
         double cos = Math.cos(angle);
         double sin = Math.sin(angle);
 
-        x = x * cos - y * sin;
-        y = x * sin + y * cos;
+        double dx = x * cos - y * sin;
+        double dy = x * sin + y * cos;
+        set(dx, dy);
 
     }
 
-    public void round() {
+    public Vector2 round() {
+        return new Vector2((int) x, (int) y);
+    }
+
+    public void roundLocal() {
         x = (int) x;
         y = (int) y;
+    }
+
+    public void print() {
+        System.out.println("x: " + x + "; y: " + y);
+    }
+
+    public String getString() {
+        return (String) ("x: " + x + "; y: " + y);
     }
 
 }

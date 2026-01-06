@@ -24,8 +24,7 @@ public class SimCanvas extends Canvas implements Runnable {
 
     private Vector2 mousePos = new Vector2();
 
-    private PhysicsHandler handler = new PhysicsHandler((int) (size.width * 0.2), (int) (size.height * 0.2),
-            (int) (size.width * 0.8), (int) (size.height * 0.8));
+    private PhysicsHandler handler = new PhysicsHandler(size.width, size.height);
 
     private Random random = new Random();
 
@@ -60,9 +59,12 @@ public class SimCanvas extends Canvas implements Runnable {
     }
 
     private void setUpSim() {
+        handler.mapAnchor.set(0, 0);
+        handler.mapAnchorVelocity.set(0, 0);
         handler.chunkDimension = 20;
-        handler.anchorFollowVelocity = 100;
-        handler.anchorFollowFriction = 0.5;
+        handler.anchorFollowVelocity = 10;
+        handler.anchorFollowFriction = 0.0;
+        handler.anchorFollowRadius = 0;
 
         // floor
         handler.addRect(new Vector2(size.width / 2, size.height), size.width - 100, 25);
@@ -212,11 +214,13 @@ public class SimCanvas extends Canvas implements Runnable {
                                 0.05);
                     }
                 } else {
-                    handler.addBall(mousePos.sub(handler.mapAnchor),
-                            10,
-                            0.1,
-                            0.05);
-
+                    if (handler.mainObject != null)
+                        handler.mainObject.setDisplayColor(Color.white);
+                    PhysicsBall b = new PhysicsBall(10, 0.8, 0.05, 0);
+                    b.pos = mousePos.sub(handler.mapAnchor);
+                    b.setDisplayColor(Color.red);
+                    handler.addObject(b);
+                    handler.mainObject = b;
                 }
             }
             if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
@@ -237,16 +241,16 @@ public class SimCanvas extends Canvas implements Runnable {
             }
 
             if (e.getKeyCode() == KeyEvent.VK_W) {
-                handler.mapAnchorVelocity.y += handler.anchorFollowVelocity;
+                handler.mapAnchorVelocity.y += handler.anchorFollowVelocity * 100;
             }
             if (e.getKeyCode() == KeyEvent.VK_S) {
-                handler.mapAnchorVelocity.y -= handler.anchorFollowVelocity;
+                handler.mapAnchorVelocity.y -= handler.anchorFollowVelocity * 100;
             }
             if (e.getKeyCode() == KeyEvent.VK_A) {
-                handler.mapAnchorVelocity.x += handler.anchorFollowVelocity;
+                handler.mapAnchorVelocity.x += handler.anchorFollowVelocity * 100;
             }
             if (e.getKeyCode() == KeyEvent.VK_D) {
-                handler.mapAnchorVelocity.x -= handler.anchorFollowVelocity;
+                handler.mapAnchorVelocity.x -= handler.anchorFollowVelocity * 100;
             }
             if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
                 shift = true;

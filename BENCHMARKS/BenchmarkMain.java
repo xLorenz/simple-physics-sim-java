@@ -11,7 +11,7 @@ public class BenchmarkMain {
         int warmup = 200;
         double dt = 1.0 / 60.0;
 
-        PhysicsHandler handler = new PhysicsHandler(0, 0, 1000, 1000);
+        PhysicsHandler handler = new PhysicsHandler(1000, 1000);
         handler.chunkDimension = 20;
         Random r = new Random(123);
 

@@ -12,8 +12,6 @@ public class PhysicsHandler {
 
     public Vector2 gravity = new Vector2(0, 980);
 
-    public Boundary boundaries;
-
     public int chunkDimension = 25; // pixels
     public Vector2 mapAnchor = new Vector2(); // map anchor controls the position from where the world is rendered, it
                                               // doesnt affect chunk calculations
@@ -22,6 +20,8 @@ public class PhysicsHandler {
     public PhysicsObject mainObject = null; // the main object is what the camera "follows"
     public double anchorFollowVelocity = 200;
     public double anchorFollowFriction = 0.99;
+    public int anchorFollowRadius = 0; // radius from the center the main object is allowed to be
+    public Vector2 screenCenter = new Vector2();
 
     public Map<Long, Chunk> chunks = new HashMap<>();
     public List<PhysicsObject> objects = new ArrayList<>();
@@ -45,23 +45,12 @@ public class PhysicsHandler {
     private final Vector2 _tmpB = new Vector2();
     private final Vector2 _tmpC = new Vector2();
 
-    public PhysicsHandler(int left, int top, int right, int bottom) {
-        this.boundaries = new Boundary(left, top, right, bottom);
+    public PhysicsHandler(double screenWidth, double screenHeight) {
+        screenCenter.set(screenWidth / 2, screenHeight / 2);
     }
 
-    public class Boundary {
-        int left, top, right, bottom;
+    public PhysicsHandler() {
 
-        Boundary(int left, int top, int right, int bottom) {
-            this.left = left;
-            this.right = right;
-            this.top = top;
-            this.bottom = bottom;
-        }
-    }
-
-    public void setBoundary(int left, int top, int right, int bottom) {
-        this.boundaries = new Boundary(left, top, right, bottom);
     }
 
     // get key for a chunk
@@ -372,24 +361,19 @@ public class PhysicsHandler {
         // move camera
         mapAnchor.addLocal(mapAnchorVelocityScaled); // move anchor
 
+        if (!objects.contains(mainObject) && !addQueue.contains(mainObject))
+            mainObject = null;
         if (mainObject != null) {
             // update anchor velocity
-            if (mainObject.pos.x < boundaries.left) {
-                mapAnchorVelocity.x += anchorFollowVelocity * dt;
-            }
-            if (mainObject.pos.x > boundaries.right) {
-                mapAnchorVelocity.x -= anchorFollowVelocity * dt;
-            }
-            if (mainObject.pos.y < boundaries.top) {
-                mapAnchorVelocity.y += anchorFollowVelocity * dt;
-            }
-            if (mainObject.pos.y > boundaries.bottom) {
-                mapAnchorVelocity.y -= anchorFollowVelocity * dt;
+            _tmpC.setSub(mainObject.pos.add(mapAnchor), screenCenter);
+            double diff = _tmpC.length();
+            if (diff > anchorFollowRadius) {
+                mapAnchorVelocity.subLocal(_tmpC.scale(anchorFollowVelocity));
             }
         }
 
         // friction and scaling
-        if (mapAnchorVelocity.lengthSquared() > 0.00000001) {
+        if (mapAnchorVelocity.lengthSquared() > 1e-9) {
             mapAnchorVelocityScaled = mapAnchorVelocity.scale(dt);
             mapAnchorVelocityScaled.roundLocal();
             mapAnchorVelocity.scaleLocal(anchorFollowFriction);

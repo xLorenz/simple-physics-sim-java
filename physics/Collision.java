@@ -10,11 +10,11 @@ public class Collision {
 
         double distanceSqrd = distance.lengthSquared();
         if (distanceSqrd >= rSum * rSum)
-            return Manifold.noCollision();
+            return null;
 
         double dist = Math.sqrt(distanceSqrd);
 
-        Manifold m = new Manifold();
+        Manifold m = Manifold.obtain();
         m.o1 = b1;
         m.o2 = b2;
         m.collided = true;
@@ -58,10 +58,10 @@ public class Collision {
         double rSqrd = b.radius * b.radius;
 
         if (distSqrd > rSqrd) {
-            return Manifold.noCollision();
+            return null;
         }
 
-        Manifold m = new Manifold();
+        Manifold m = Manifold.obtain();
         m.o1 = b;
         m.o2 = r;
         m.collided = true;
@@ -146,12 +146,12 @@ public class Collision {
 
         double overlapX = Math.min(r1xMax, r2xMax) - Math.max(r1xMin, r2xMin);
         if (overlapX <= 0)
-            return Manifold.noCollision();
+            return null;
         double overlapY = Math.min(r1yMax, r2yMax) - Math.max(r1yMin, r2yMin);
         if (overlapY <= 0)
-            return Manifold.noCollision();
+            return null;
 
-        Manifold m = new Manifold();
+        Manifold m = Manifold.obtain();
         m.o1 = r1;
         m.o2 = r2;
         m.collided = true;

@@ -114,6 +114,31 @@ public class Vector2 {
 
     }
 
+    // non-allocating setters to avoid temporaries
+    public Vector2 setCopy(Vector2 a) {
+        this.x = a.x;
+        this.y = a.y;
+        return this;
+    }
+
+    public Vector2 setSub(Vector2 a, Vector2 b) {
+        this.x = a.x - b.x;
+        this.y = a.y - b.y;
+        return this;
+    }
+
+    public Vector2 setScale(Vector2 a, double s) {
+        this.x = a.x * s;
+        this.y = a.y * s;
+        return this;
+    }
+
+    public Vector2 setPerp(Vector2 a) {
+        this.x = -a.y;
+        this.y = a.x;
+        return this;
+    }
+
     public Vector2 round() {
         return new Vector2((int) x, (int) y);
     }

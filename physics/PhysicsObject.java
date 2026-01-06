@@ -1,15 +1,15 @@
 package physics;
 
 import java.awt.Color;
-import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 public abstract class PhysicsObject {
 
-    public static double SUPPORT_NORMAL_Y = 0.75;
-    public static double VEL_EPS = 10.0;
+    public static double SUPPORT_NORMAL_Y = 0.60;
+    public static double VEL_EPS = 5.0;
     public static int MAX_SLEEP_FRAMES = 50;
     public static double WAKE_VEL_THRESHOLD = 1.0;
     public static double WAKE_PENETRATION_THRESHOLD = 0.5;
@@ -28,10 +28,12 @@ public abstract class PhysicsObject {
     public boolean supported = false;
     public boolean sleeping = false;
     public int sleepFrames = 0;
+    public boolean forceAwake = false;
 
     public List<Contact> contacts = new ArrayList<Contact>();
 
     public Color displayColor = Color.white;
+    public Color displayColorDarker = displayColor.darker();
     private CollisionListener collisionListener = null;
 
     PhysicsObject(long id) {
@@ -40,7 +42,6 @@ public abstract class PhysicsObject {
 
     public double getInverseMass() {
         return (mass == 0) ? 0 : 1.0 / mass;
-
     }
 
     public double getInverseMass(double m) {
@@ -50,7 +51,12 @@ public abstract class PhysicsObject {
 
     public void randomizeColor() {
         Random r = new Random();
-        displayColor = new Color(r.nextInt(255), r.nextInt(255), r.nextInt(255));
+        setDisplayColor(new Color(r.nextInt(255), r.nextInt(255), r.nextInt(255)));
+    }
+
+    public void setDisplayColor(Color c) {
+        this.displayColor = c;
+        this.displayColorDarker = (c == null) ? Color.black : c.darker();
     }
 
     public void notifyListener(PhysicsObject o, Manifold m) {
@@ -72,13 +78,10 @@ public abstract class PhysicsObject {
     }
 
     public void addContact(PhysicsObject o2, Vector2 normal, double penetration) {
-
-        Contact c1 = new Contact();
-
+        Contact c1 = Contact.obtain();
         c1.other = o2;
         c1.normal = normal; // from 1 to 2
         c1.penetration = penetration;
-
         contacts.add(c1);
     }
 
@@ -130,23 +133,21 @@ public abstract class PhysicsObject {
     }
 
     public void updateSleepState() {
-        if (vel.lengthSquared() < VEL_EPS && !sleeping && (supported || stationary)) {
-            sleepFrames++;
-            if (sleepFrames >= MAX_SLEEP_FRAMES) {
-                sleeping = true;
+        if (!forceAwake)
+            if (vel.lengthSquared() < VEL_EPS && !sleeping && (supported || stationary)) {
+                sleepFrames++;
+                if (sleepFrames >= MAX_SLEEP_FRAMES) {
+                    sleeping = true;
+                }
             }
-        }
-        // if (vel.lengthSquared() > VEL_EPS && sleeping) {
-        // forceWake();
-        // }
     }
 
     public void update(double dt) {
     }
 
-    public abstract void draw(Graphics g, Vector2 offset);
+    public abstract void draw(Graphics2D g, Vector2 offset);
 
-    public abstract void drawDebug(Graphics g, Vector2 offset);
+    public abstract void drawDebug(Graphics2D g, Vector2 offset);
 
     public abstract int[] getOccuppiedChunks(int chunkDim);
 

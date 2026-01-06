@@ -20,7 +20,7 @@ public class SimCanvas extends Canvas implements Runnable {
     private double accumulator = 0.0;
 
     private boolean running = true;
-    private Dimension size = new Dimension(1000, 800);
+    private Dimension size = new Dimension(1000, 1000);
 
     private Vector2 mousePos = new Vector2();
 

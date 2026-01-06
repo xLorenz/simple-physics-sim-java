@@ -2,6 +2,7 @@ package physics;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +32,7 @@ public class PhysicsHandler {
 
     public java.util.HashSet<Long> processedPairs = new java.util.HashSet<>();
 
-    public static int POS_ITERS = 2;
+    public static int POS_ITERS = 3;
     public static int SOLVER_ITERS = 20;
 
     public static double POSCORR_SLOP = 0.01; // allowance
@@ -39,6 +40,10 @@ public class PhysicsHandler {
     public static double MIN_VEL_FOR_RESTITUTION = 8.0;
 
     private long nextId = 1L; // ids to keep track of objects
+    // scratch temporaries to reduce per-frame allocations
+    private final Vector2 _tmpA = new Vector2();
+    private final Vector2 _tmpB = new Vector2();
+    private final Vector2 _tmpC = new Vector2();
 
     public PhysicsHandler(int left, int top, int right, int bottom) {
         this.boundaries = new Boundary(left, top, right, bottom);
@@ -114,14 +119,18 @@ public class PhysicsHandler {
 
         proccessAditionsAndRemovals();
 
-        // update chunks and clear contacts
+        // update chunks and clear contacts (release pooled Contact objects)
         for (PhysicsObject o : objects) {
             updateObjectsChunk(o);
             if (!o.stationary)
                 o.updateSupportState();
 
-            if (!o.sleeping)
+            if (!o.sleeping) {
+                for (Contact c : o.contacts) {
+                    Contact.release(c);
+                }
                 o.contacts.clear();
+            }
         }
 
         // update objects positions and velocities
@@ -163,8 +172,12 @@ public class PhysicsHandler {
                             continue; // already handled this unordered pair in another chunk
                         processedPairs.add(pairKey);
                         Manifold m = o1.collide(o2); // normal o2 -> o1
-                        if (m.collided) {
-                            frameManifolds.add(m);
+                        if (m != null) {
+                            if (m.collided) {
+                                frameManifolds.add(m);
+                            } else {
+                                Manifold.release(m);
+                            }
                         }
                     }
                 }
@@ -193,6 +206,10 @@ public class PhysicsHandler {
                 resolveVelocityImpulse(m);
         }
 
+        // release pooled Manifolds
+        for (Manifold m : frameManifolds) {
+            Manifold.release(m);
+        }
         frameManifolds.clear();
 
         for (PhysicsObject o : objects) {
@@ -211,16 +228,16 @@ public class PhysicsHandler {
         // Ensure manifold.normal points from o1 -> o2 (handleCollision expects this)
         if (m.normal == null || m.normal.lengthSquared() < 1e-9) {
             // fallback: use vector from o1 -> o2
-            Vector2 dir = m.o2.pos.sub(m.o1.pos);
-            if (dir.lengthSquared() < 1e-9) {
+            _tmpA.setSub(m.o2.pos, m.o1.pos);
+            if (_tmpA.lengthSquared() < 1e-9) {
                 // unresolvable direction; pick up
                 m.normal = new Vector2(0, -1);
             } else {
-                m.normal = dir.scale(1.0 / dir.length());
+                m.normal = new Vector2(_tmpA.x / _tmpA.length(), _tmpA.y / _tmpA.length());
             }
         } else {
-            Vector2 dir = m.o2.pos.sub(m.o1.pos); // vector from o1 to o2
-            double dot = m.normal.dot(dir);
+            _tmpA.setSub(m.o2.pos, m.o1.pos); // vector from o1 to o2
+            double dot = m.normal.dot(_tmpA);
             if (dot < 0) {
                 // flip normal so it points from o1 to o2
                 m.normal = m.normal.scale(-1.0);
@@ -255,15 +272,19 @@ public class PhysicsHandler {
         double invB = b.invMass;
 
         // normal impulse
-        Vector2 Pn = m.normal.scale(m.accumulatedNormalImpulse);
-        a.vel.subLocal(Pn.scale(invA));
-        b.vel.addLocal(Pn.scale(invB));
+        _tmpA.setScale(m.normal, m.accumulatedNormalImpulse);
+        _tmpB.setScale(_tmpA, invA);
+        a.vel.subLocal(_tmpB);
+        _tmpB.setScale(_tmpA, invB);
+        b.vel.addLocal(_tmpB);
 
         // tangent impulse
-        Vector2 tangent = new Vector2(-m.normal.y, m.normal.x);
-        Vector2 Pt = tangent.scale(m.accumulatedTangentImpulse);
-        a.vel.subLocal(Pt.scale(invA));
-        b.vel.addLocal(Pt.scale(invB));
+        _tmpB.setPerp(m.normal);
+        _tmpC.setScale(_tmpB, m.accumulatedTangentImpulse);
+        _tmpA.setScale(_tmpC, invA);
+        a.vel.subLocal(_tmpA);
+        _tmpA.setScale(_tmpC, invB);
+        b.vel.addLocal(_tmpA);
     }
 
     public void resolveVelocityImpulse(Manifold m) {
@@ -275,7 +296,8 @@ public class PhysicsHandler {
             return;
 
         // relative velocity
-        Vector2 rv = b.vel.sub(a.vel);
+        _tmpA.setSub(b.vel, a.vel);
+        Vector2 rv = _tmpA;
         double velAlongNormal = rv.dot(m.normal);
 
         // wake objects (use magnitude of relative speed so approaching or separating
@@ -298,21 +320,27 @@ public class PhysicsHandler {
             // accumulate and clamp (optional), use m.accumulatedNormalImpulse
             double oldImpulse = m.accumulatedNormalImpulse;
             double newImpulse = oldImpulse + j;
-            // if you want to clamp to non-negative:
             if (newImpulse < 0.0)
                 newImpulse = 0;
             double appliedImpulse = newImpulse - oldImpulse;
             m.accumulatedNormalImpulse = newImpulse;
 
-            a.vel.subLocal(m.normal.scale(appliedImpulse * invA));
-            b.vel.addLocal(m.normal.scale(appliedImpulse * invB));
+            _tmpB.setScale(m.normal, appliedImpulse);
+            _tmpC.setScale(_tmpB, invA);
+            a.vel.subLocal(_tmpC);
+            _tmpC.setScale(_tmpB, invB);
+            b.vel.addLocal(_tmpC);
         }
 
         // Friction (Coulomb)
         // recompute relative velocity after normal impulse applied
 
-        rv = b.vel.sub(a.vel);
-        Vector2 tangent = rv.sub(m.normal.scale(rv.dot(m.normal)));
+        _tmpA.setSub(b.vel, a.vel);
+        rv = _tmpA;
+        double rvDot = rv.dot(m.normal);
+        _tmpB.setScale(m.normal, rvDot);
+        _tmpC.setSub(rv, _tmpB);
+        Vector2 tangent = _tmpC;
         double tLen2 = tangent.lengthSquared();
         if (tLen2 > 1e-9) {
             tangent.normalizeLocal();
@@ -332,9 +360,11 @@ public class PhysicsHandler {
             double appliedT = newT - oldT;
             m.accumulatedTangentImpulse = newT;
 
-            Vector2 Pt = tangent.scale(appliedT);
-            a.vel.subLocal(Pt.scale(invA));
-            b.vel.addLocal(Pt.scale(invB));
+            _tmpA.setScale(tangent, appliedT);
+            _tmpB.setScale(_tmpA, invA);
+            a.vel.subLocal(_tmpB);
+            _tmpB.setScale(_tmpA, invB);
+            b.vel.addLocal(_tmpB);
         }
     }
 
@@ -384,6 +414,11 @@ public class PhysicsHandler {
             if (!removeQueue.isEmpty()) {
                 for (PhysicsObject o : removeQueue) {
                     o.forceWake();
+                    // release contacts owned by the removed object
+                    for (Contact c : o.contacts) {
+                        Contact.release(c);
+                    }
+                    o.contacts.clear();
                     objects.remove(o);
                     // also remove from any chunks the object occupied
                     for (int cx = o.cMinCx; cx <= o.cMaxCx; cx++) {
@@ -413,7 +448,7 @@ public class PhysicsHandler {
     public void addBall(Vector2 pos, int radius, double elasticity, double mass, Color color) {
         PhysicsBall ball = new PhysicsBall(radius, elasticity, mass, 0);
         ball.pos = pos;
-        ball.displayColor = color;
+        ball.setDisplayColor(color);
         addObject(ball);
     }
 
@@ -449,7 +484,7 @@ public class PhysicsHandler {
         }
     }
 
-    public void displayObjects(Graphics g) {
+    public void displayObjects(Graphics2D g) {
         // iterate over a snapshot to avoid ConcurrentModificationException if objects
         // are
         // mutated from another thread
@@ -462,7 +497,7 @@ public class PhysicsHandler {
         }
     }
 
-    public void displayObjectsDebug(Graphics g) {
+    public void displayObjectsDebug(Graphics2D g) {
         // iterate over a snapshot to avoid ConcurrentModificationException if objects
         // are
         // mutated from another thread

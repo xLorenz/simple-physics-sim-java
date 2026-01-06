@@ -1,7 +1,7 @@
 package physics;
 
 import java.awt.Color;
-import java.awt.Graphics;
+import java.awt.Graphics2D;
 
 public class PhysicsRect extends PhysicsObject {
     public int width;
@@ -23,33 +23,37 @@ public class PhysicsRect extends PhysicsObject {
     }
 
     @Override
-    public void draw(Graphics g, Vector2 offset) {
-        double x = pos.x + offset.x;
-        double y = pos.y + offset.y;
-        g.setColor(displayColor);
-        g.fillRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+    public void draw(Graphics2D g, Vector2 offset) {
+        int cx = (int) (pos.x + offset.x);
+        int cy = (int) (pos.y + offset.y);
+        int xi = cx - width / 2;
+        int yi = cy - height / 2;
 
-        g.setColor(displayColor.darker());
-        g.drawRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+        g.setColor(displayColor);
+        g.fillRect(xi, yi, width, height);
+
+        g.setColor(displayColorDarker);
+        g.drawRect(xi, yi, width, height);
     }
 
     @Override
-    public void drawDebug(Graphics g, Vector2 offset) {
-        double x = pos.x + offset.x;
-        double y = pos.y + offset.y;
+    public void drawDebug(Graphics2D g, Vector2 offset) {
+        int cx = (int) (pos.x + offset.x);
+        int cy = (int) (pos.y + offset.y);
+        int xi = cx - width / 2;
+        int yi = cy - height / 2;
         if (!sleeping) {
             g.setColor(displayColor);
         } else {
-            g.setColor(displayColor.darker());
+            g.setColor(displayColorDarker);
         }
-        g.fillRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+        g.fillRect(xi, yi, width, height);
 
-        g.setColor(displayColor.darker());
-        g.drawRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+        g.setColor(displayColorDarker);
+        g.drawRect(xi, yi, width, height);
         if (!supported) {
-
             g.setColor(Color.green);
-            g.drawRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+            g.drawRect(xi, yi, width, height);
         }
     }
 

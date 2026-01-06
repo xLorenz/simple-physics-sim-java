@@ -8,13 +8,11 @@ import java.util.Random;
 
 public abstract class PhysicsObject {
 
-    public static final double SUPPORT_NORMAL_Y = 0.75;
-    public static final double SUPPORT_VELOCITY_EPS = 0.1;
-    public static final double PENETRATION_EPS = 0.0001;
-    public static final double VEL_EPS = 2.0;
-    public static final int MAX_SLEEP_FRAMES = 20;
-    public static final double WAKE_VEL_THRESHOLD = 5.0;
-    public static final double WAKE_PENETRATION_THRESHOLD = 0.9;
+    public static double SUPPORT_NORMAL_Y = 0.75;
+    public static double VEL_EPS = 10.0;
+    public static int MAX_SLEEP_FRAMES = 50;
+    public static double WAKE_VEL_THRESHOLD = 1.0;
+    public static double WAKE_PENETRATION_THRESHOLD = 0.5;
 
     public Vector2 pos = new Vector2(); // pos, for all objects, its center
     public int cx, cy; // center chunkPos
@@ -97,17 +95,12 @@ public abstract class PhysicsObject {
     public void updateSupportState() {
         supported = false;
         Vector2 normal = new Vector2();
-        double masses = 0;
         for (Contact c : contacts) {
             if (c.normal.y > 0) {
-                if (c.other.mass == 0) {
-                    masses = 0;
-                }
                 normal.addLocal(c.normal);
-                masses += c.other.mass;
             }
         }
-        if (normal.normalize().y > SUPPORT_NORMAL_Y && getInverseMass(masses) < invMass) {
+        if (normal.normalize().y > SUPPORT_NORMAL_Y) {
             supported = true;
         }
     }
@@ -152,6 +145,8 @@ public abstract class PhysicsObject {
     }
 
     public abstract void draw(Graphics g, Vector2 offset);
+
+    public abstract void drawDebug(Graphics g, Vector2 offset);
 
     public abstract int[] getOccuppiedChunks(int chunkDim);
 

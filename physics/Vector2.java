@@ -114,9 +114,21 @@ public class Vector2 {
 
     }
 
-    public void round() {
+    public Vector2 round() {
+        return new Vector2((int) x, (int) y);
+    }
+
+    public void roundLocal() {
         x = (int) x;
         y = (int) y;
+    }
+
+    public void print() {
+        System.out.println("x: " + x + "; y: " + y);
+    }
+
+    public String getString() {
+        return (String) ("x: " + x + "; y: " + y);
     }
 
 }

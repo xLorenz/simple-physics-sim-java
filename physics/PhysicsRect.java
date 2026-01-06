@@ -12,7 +12,7 @@ public class PhysicsRect extends PhysicsObject {
         this.width = width;
         this.height = height;
         this.mass = mass;
-        this.elasticity = 0.0;
+        this.elasticity = 1.0;
         this.stationary = true;
         this.invMass = getInverseMass();
     }
@@ -24,6 +24,17 @@ public class PhysicsRect extends PhysicsObject {
 
     @Override
     public void draw(Graphics g, Vector2 offset) {
+        double x = pos.x + offset.x;
+        double y = pos.y + offset.y;
+        g.setColor(displayColor);
+        g.fillRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+
+        g.setColor(displayColor.darker());
+        g.drawRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+    }
+
+    @Override
+    public void drawDebug(Graphics g, Vector2 offset) {
         double x = pos.x + offset.x;
         double y = pos.y + offset.y;
         if (!sleeping) {

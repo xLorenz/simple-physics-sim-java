@@ -31,11 +31,12 @@ public class PhysicsHandler {
 
     public java.util.HashSet<Long> processedPairs = new java.util.HashSet<>();
 
-    public static int POS_ITERS = 3;
-    public static int SOLVER_ITERS = 10;
+    public static int POS_ITERS = 2;
+    public static int SOLVER_ITERS = 20;
 
     public static double POSCORR_SLOP = 0.01; // allowance
-    public static double POSCORR_PERCENT = 0.2; // return
+    public static double POSCORR_PERCENT = 0.1; // return
+    public static double MIN_VEL_FOR_RESTITUTION = 8.0;
 
     private long nextId = 1L; // ids to keep track of objects
 
@@ -147,12 +148,13 @@ public class PhysicsHandler {
                         continue;
                     for (PhysicsObject o2 : ch.objects) {
 
+                        // skip sleepy objects
                         if (o1.sleeping && o2.sleeping) {
                             continue;
                         }
+                        // check unordered pair only once
                         if (o1.id <= o2.id)
                             continue;
-                        // check unordered pair only once
                         long a = Math.min(o1.id, o2.id);
                         long b = Math.max(o1.id, o2.id);
                         long pairKey = (a << 32) | (b & 0xffffffffL);
@@ -160,7 +162,6 @@ public class PhysicsHandler {
                         if (processedPairs.contains(pairKey))
                             continue; // already handled this unordered pair in another chunk
                         processedPairs.add(pairKey);
-                        // skip sleepy objects
                         Manifold m = o1.collide(o2); // normal o2 -> o1
                         if (m.collided) {
                             frameManifolds.add(m);
@@ -183,8 +184,8 @@ public class PhysicsHandler {
         }
 
         // warm start
-        for (Manifold m : frameManifolds)
-            warmStart(m);
+        // for (Manifold m : frameManifolds)
+        // warmStart(m);
 
         // iterative velocity solver
         for (int it = 0; it < SOLVER_ITERS; it++) {
@@ -197,6 +198,9 @@ public class PhysicsHandler {
         for (PhysicsObject o : objects) {
             o.updateSleepState(); // +1 sleepFrames if vel == threshold
             o.update(dt);
+            if (!o.stationary) {
+                // System.out.println("vel: " + o.vel.getString());
+            }
         }
 
         updateAnchor(dt);
@@ -274,12 +278,16 @@ public class PhysicsHandler {
         Vector2 rv = b.vel.sub(a.vel);
         double velAlongNormal = rv.dot(m.normal);
 
-        // wake objects
-        a.wake(velAlongNormal, m.penetration);
-        b.wake(velAlongNormal, m.penetration);
+        // wake objects (use magnitude of relative speed so approaching or separating
+        // wakes)
+        a.wake(Math.abs(velAlongNormal), m.penetration);
+        b.wake(Math.abs(velAlongNormal), m.penetration);
 
-        // Normal impulse
-        double e = Math.min(1.0, Math.max(a.elasticity, b.elasticity));
+        // Normal impulse - use conservative minimum restitution between objects using
+        // threshold velocity
+        double e = Math.abs(velAlongNormal) < MIN_VEL_FOR_RESTITUTION ? 0.0
+                : Math.min(1.0, Math.min(a.elasticity, b.elasticity));
+        // System.out.println(velAlongNormal + " " + e);
 
         if (velAlongNormal > 0) {
             // objects separating — no normal impulse
@@ -302,6 +310,7 @@ public class PhysicsHandler {
 
         // Friction (Coulomb)
         // recompute relative velocity after normal impulse applied
+
         rv = b.vel.sub(a.vel);
         Vector2 tangent = rv.sub(m.normal.scale(rv.dot(m.normal)));
         double tLen2 = tangent.lengthSquared();
@@ -352,7 +361,7 @@ public class PhysicsHandler {
         // friction and scaling
         if (mapAnchorVelocity.lengthSquared() > 0.00000001) {
             mapAnchorVelocityScaled = mapAnchorVelocity.scale(dt);
-            mapAnchorVelocityScaled.round();
+            mapAnchorVelocityScaled.roundLocal();
             mapAnchorVelocity.scaleLocal(anchorFollowFriction);
         } else {
             mapAnchorVelocityScaled.set(0, 0);
@@ -411,7 +420,6 @@ public class PhysicsHandler {
     public void addRect(Vector2 center, int width, int height) {
         PhysicsRect rect = new PhysicsRect(width, height, 0, 0);
         rect.pos = center;
-        rect.elasticity = 0.0;
         addObject(rect);
     }
 
@@ -451,6 +459,19 @@ public class PhysicsHandler {
         }
         for (PhysicsObject o : snapshot) {
             o.draw(g, mapAnchor);
+        }
+    }
+
+    public void displayObjectsDebug(Graphics g) {
+        // iterate over a snapshot to avoid ConcurrentModificationException if objects
+        // are
+        // mutated from another thread
+        java.util.List<PhysicsObject> snapshot;
+        synchronized (objects) {
+            snapshot = new ArrayList<>(objects);
+        }
+        for (PhysicsObject o : snapshot) {
+            o.drawDebug(g, mapAnchor);
         }
     }
 

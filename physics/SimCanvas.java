@@ -32,6 +32,7 @@ public class SimCanvas extends Canvas implements Runnable {
     private boolean leftClick = false;
     private boolean rightClick = false;
     private boolean shift = false;
+    private boolean debug = false;
 
     private double actionCooldown = 0.5;
 
@@ -64,7 +65,7 @@ public class SimCanvas extends Canvas implements Runnable {
         handler.anchorFollowFriction = 0.5;
 
         // floor
-        handler.addRect(new Vector2(size.width / 2, size.height), size.width - 100, 100);
+        handler.addRect(new Vector2(size.width / 2, size.height), size.width - 100, 25);
         // walls
         handler.addRect(new Vector2(100, size.height / 2), 50, size.height * 2);
         handler.addRect(new Vector2(size.width - 100, size.height / 2), 50, size.height * 2);
@@ -116,12 +117,13 @@ public class SimCanvas extends Canvas implements Runnable {
                     g.fillRect(0, 0, size.width, size.height);
 
                     // draw game
-
-                    handler.displayChunkBorders(g, size.width, size.height);
-                    // handler.drawRecordedChunks(g, true);
-                    handler.displayObjects(g);
-                    // collision debug overlay
-                    // handler.displayCollisionDebug(g);
+                    if (debug) {
+                        handler.displayChunkBorders(g, size.width, size.height);
+                        handler.drawRecordedChunks(g, true);
+                        handler.displayObjectsDebug(g);
+                    } else {
+                        handler.displayObjects(g);
+                    }
 
                 } finally {
                     g.dispose();
@@ -163,7 +165,7 @@ public class SimCanvas extends Canvas implements Runnable {
                     }
                     if (allowed) {
                         handler.addRect(mousePos.sub(handler.mapAnchor), handler.chunkDimension,
-                                handler.chunkDimension, 0.1, 0.0, false);
+                                handler.chunkDimension, 0.0, 0.0, true);
                         actionCooldown = 0.05;
                     }
                 }
@@ -212,7 +214,7 @@ public class SimCanvas extends Canvas implements Runnable {
                 } else {
                     handler.addBall(mousePos.sub(handler.mapAnchor),
                             10,
-                            0.8,
+                            0.1,
                             0.05);
 
                 }
@@ -229,6 +231,9 @@ public class SimCanvas extends Canvas implements Runnable {
                     handler.removeObject(o);
                 }
                 setUpSim();
+            }
+            if (e.getKeyCode() == KeyEvent.VK_X) {
+                debug = !debug;
             }
 
             if (e.getKeyCode() == KeyEvent.VK_W) {

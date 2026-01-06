@@ -1,10 +1,12 @@
 package physics;
 
 import java.awt.Color;
-import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Ellipse2D;
 
 public class PhysicsBall extends PhysicsObject {
     public int radius;
+    public Ellipse2D.Float oval = new Ellipse2D.Float();
 
     public PhysicsBall(int radius, double elasticity, double mass, long id) {
         super(id);
@@ -19,34 +21,44 @@ public class PhysicsBall extends PhysicsObject {
     }
 
     @Override
-    public void draw(Graphics g, Vector2 offset) {
-        double x = pos.x + offset.x;
-        double y = pos.y + offset.y;
+    public void draw(Graphics2D g, Vector2 offset, double scale) {
+        int cx = (int) (pos.x + offset.x);
+        int cy = (int) (pos.y + offset.y);
+        int xi = cx - radius;
+        int yi = cy - radius;
+        int diam = radius * 2;
+
+        oval.setFrame(xi * scale, yi * scale, diam * scale, diam * scale);
 
         g.setColor(displayColor);
-        g.fillOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
-        g.setColor(displayColor.darker());
-        g.drawOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
+        g.fill(oval);
+        g.setColor(displayColorDarker);
+        g.draw(oval);
     }
 
     @Override
-    public void drawDebug(Graphics g, Vector2 offset) {
-        double x = pos.x + offset.x;
-        double y = pos.y + offset.y;
+    public void drawDebug(Graphics2D g, Vector2 offset, double scale) {
+        int cx = (int) (pos.x + offset.x);
+        int cy = (int) (pos.y + offset.y);
+        int xi = cx - radius;
+        int yi = cy - radius;
+        int diam = radius * 2;
 
-        g.setColor(displayColor);
-        g.fillOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
-        g.setColor(displayColor.darker());
-        g.drawOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
+        oval.setFrame(xi * scale, yi * scale, diam * scale, diam * scale);
+
         if (sleeping) {
-
-            g.setColor(displayColor.darker());
-            g.fillOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
+            g.setColor(displayColorDarker);
+            g.fill(oval);
+        } else {
+            g.setColor(displayColor);
+            g.fill(oval);
         }
         if (!supported) {
-
-            g.setColor(Color.green);
-            g.drawOval((int) (x - radius), (int) (y - radius), radius * 2, radius * 2);
+            g.setColor(Color.blue);
+            g.draw(oval);
+        } else {
+            g.setColor(displayColorDarker);
+            g.draw(oval);
         }
     }
 

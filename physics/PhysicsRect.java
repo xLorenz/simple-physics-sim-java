@@ -1,11 +1,13 @@
 package physics;
 
 import java.awt.Color;
-import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Rectangle2D;
 
 public class PhysicsRect extends PhysicsObject {
     public int width;
     public int height;
+    public Rectangle2D.Float rect = new Rectangle2D.Float();
 
     public PhysicsRect(int width, int height, double mass, long id) {
         super(id);
@@ -23,34 +25,45 @@ public class PhysicsRect extends PhysicsObject {
     }
 
     @Override
-    public void draw(Graphics g, Vector2 offset) {
-        double x = pos.x + offset.x;
-        double y = pos.y + offset.y;
-        g.setColor(displayColor);
-        g.fillRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+    public void draw(Graphics2D g, Vector2 offset, double scale) {
+        int cx = (int) (pos.x + offset.x);
+        int cy = (int) (pos.y + offset.y);
+        int xi = cx - width / 2;
+        int yi = cy - height / 2;
 
-        g.setColor(displayColor.darker());
-        g.drawRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+        rect.setFrame(xi * scale, yi * scale, width * scale, height * scale);
+
+        g.setColor(displayColor);
+        g.fill(rect);
+
+        g.setColor(displayColorDarker);
+        g.draw(rect);
     }
 
     @Override
-    public void drawDebug(Graphics g, Vector2 offset) {
-        double x = pos.x + offset.x;
-        double y = pos.y + offset.y;
+    public void drawDebug(Graphics2D g, Vector2 offset, double scale) {
+        int cx = (int) (pos.x + offset.x);
+        int cy = (int) (pos.y + offset.y);
+        int xi = cx - width / 2;
+        int yi = cy - height / 2;
+
+        rect.setFrame(xi * scale, yi * scale, width * scale, height * scale);
+
         if (!sleeping) {
             g.setColor(displayColor);
         } else {
-            g.setColor(displayColor.darker());
+            g.setColor(displayColorDarker);
         }
-        g.fillRect((int) (x - width / 2), (int) (y - height / 2), width, height);
 
-        g.setColor(displayColor.darker());
-        g.drawRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+        g.fill(rect);
+
         if (!supported) {
-
             g.setColor(Color.green);
-            g.drawRect((int) (x - width / 2), (int) (y - height / 2), width, height);
+        } else {
+            g.setColor(displayColorDarker);
         }
+
+        g.draw(rect);
     }
 
     public int[] getCorners() {

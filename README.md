@@ -20,7 +20,7 @@ https://github.com/user-attachments/assets/eef61410-b232-4e8a-bff5-b7d5e09e16e8
 I developed this physics engine with the goal of using it for game design later. I wanted data structures from where i can just inherit to a playable character and have it run flawlessly. 
 It doesn't offer much, but it's open for expansion in the future. I'll be personally using it, fixing any bugs and implementing missing features. 
 
-
+## Controls
 Spawn circles with SPACE and CTRL, spawn rects with RIGHT and LEFT clicks.
 Spawn a camera tracked circle with LSHIFT + SPACE.
 Delete objects with LSHIFT + RIGHT and LEFT clicks.

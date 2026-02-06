@@ -1,4 +1,4 @@
-package physics;
+package physics.process;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -7,6 +7,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import physics.structures.Chunk;
+import physics.structures.Contact;
+import physics.structures.Manifold;
+import physics.structures.Vector2;
+import physics.objects.PhysicsObject;
+import physics.objects.PhysicsBall;
+import physics.objects.PhysicsRect;
 
 public class PhysicsHandler {
 

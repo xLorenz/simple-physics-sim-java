@@ -1,8 +1,12 @@
-package physics;
+package physics.objects;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
+
+import physics.collisions.Collision;
+import physics.structures.Manifold;
+import physics.structures.Vector2;
 
 public class PhysicsBall extends PhysicsObject {
     public int radius;

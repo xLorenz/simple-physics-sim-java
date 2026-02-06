@@ -1,6 +1,8 @@
 package BENCHMARKS;
 
-import physics.*;
+import physics.objects.*;
+import physics.process.PhysicsHandler;
+
 import java.util.Random;
 
 // Simple microbenchmark: headless simulation stepping

@@ -1,14 +1,16 @@
-package physics;
+package physics.structures;
 
-class Contact {
-    PhysicsObject other;
-    Vector2 normal; // normal pointing from other -> this
-    double penetration;
+import physics.objects.PhysicsObject;
+
+public class Contact {
+    public PhysicsObject other;
+    public Vector2 normal; // normal pointing from other -> this
+    public double penetration;
 
     // Simple object pool
     private static final java.util.ArrayDeque<Contact> POOL = new java.util.ArrayDeque<>();
 
-    static Contact obtain() {
+    public static Contact obtain() {
         Contact c = POOL.pollLast();
         if (c == null) {
             c = new Contact();
@@ -16,7 +18,7 @@ class Contact {
         return c;
     }
 
-    static void release(Contact c) {
+    public static void release(Contact c) {
         if (c == null)
             return;
         c.other = null;

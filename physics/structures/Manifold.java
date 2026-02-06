@@ -1,7 +1,9 @@
-package physics;
+package physics.structures;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import physics.objects.PhysicsObject;
 
 public class Manifold {
 
@@ -19,7 +21,7 @@ public class Manifold {
     // simple object pool for Manifold
     private static final java.util.ArrayDeque<Manifold> POOL = new java.util.ArrayDeque<>();
 
-    static Manifold obtain() {
+    public static Manifold obtain() {
         Manifold m = POOL.pollLast();
         if (m == null) {
             m = new Manifold();
@@ -36,7 +38,7 @@ public class Manifold {
         return m;
     }
 
-    static void release(Manifold m) {
+    public static void release(Manifold m) {
         if (m == null)
             return;
         m.o1 = null;

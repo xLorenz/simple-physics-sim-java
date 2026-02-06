@@ -3,15 +3,14 @@ package src;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferStrategy;
-import java.util.Random;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
-import physics.PhysicsBall;
-import physics.PhysicsHandler;
-import physics.PhysicsObject;
-import physics.Vector2;
+import physics.objects.PhysicsBall;
+import physics.objects.PhysicsObject;
+import physics.process.PhysicsHandler;
+import physics.structures.Vector2;
 
 public class SimCanvas extends Canvas implements Runnable {
 
@@ -20,7 +19,6 @@ public class SimCanvas extends Canvas implements Runnable {
     private long fpsTimer = System.nanoTime();
 
     private long lastTime;
-    private double dt;
     static final double FIXED_STEP = 1.0 / 60.0;
     private double accumulator = 0.0;
 
@@ -30,8 +28,6 @@ public class SimCanvas extends Canvas implements Runnable {
     private Vector2 mousePos = new Vector2();
 
     private PhysicsHandler handler = new PhysicsHandler(size.width, size.height);
-
-    private Random random = new Random();
 
     private boolean leftClick = false;
     private boolean rightClick = false;

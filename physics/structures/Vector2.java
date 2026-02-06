@@ -1,4 +1,4 @@
-package physics;
+package physics.structures;
 
 public class Vector2 {
     public double x, y;

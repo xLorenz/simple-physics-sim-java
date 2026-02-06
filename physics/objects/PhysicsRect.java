@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
 
 import physics.collisions.Collision;
+import physics.process.PhysicsRenderer;
 import physics.structures.Manifold;
 import physics.structures.Vector2;
 
@@ -116,5 +117,10 @@ public class PhysicsRect extends PhysicsObject {
     @Override
     public Manifold collideWithRect(PhysicsRect rect) {
         return Collision.rectRect(rect, this);
+    }
+
+    @Override
+    public void draw(PhysicsRenderer renderer) {
+
     }
 }

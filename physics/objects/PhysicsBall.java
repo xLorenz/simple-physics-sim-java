@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 
 import physics.collisions.Collision;
+import physics.process.PhysicsRenderer;
 import physics.structures.Manifold;
 import physics.structures.Vector2;
 
@@ -92,6 +93,11 @@ public class PhysicsBall extends PhysicsObject {
     @Override
     public Manifold collideWithRect(PhysicsRect rect) {
         return Collision.circleRect(this, rect);
+    }
+
+    @Override
+    public void draw(PhysicsRenderer renderer) {
+
     }
 
 }

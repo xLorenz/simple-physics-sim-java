@@ -10,6 +10,7 @@ import javax.swing.SwingUtilities;
 import physics.objects.PhysicsBall;
 import physics.objects.PhysicsObject;
 import physics.process.PhysicsHandler;
+import physics.process.NeoPhysicsHandler;
 import physics.structures.Vector2;
 
 public class SimCanvas extends Canvas implements Runnable {

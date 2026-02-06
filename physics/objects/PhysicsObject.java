@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Random;
 
 import physics.collisions.CollisionListener;
+import physics.process.PhysicsRenderer;
 import physics.structures.Contact;
 import physics.structures.Manifold;
 import physics.structures.Vector2;
@@ -151,6 +152,8 @@ public abstract class PhysicsObject {
     }
 
     public abstract void draw(Graphics2D g, Vector2 offset, double scale);
+
+    public abstract void draw(PhysicsRenderer renderer);
 
     public abstract void drawDebug(Graphics2D g, Vector2 offset, double scale);
 

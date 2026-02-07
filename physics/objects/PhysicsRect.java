@@ -5,7 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
 
 import physics.collisions.Collision;
-import physics.process.PhysicsRenderer;
+import physics.process.BatchRenderer;
 import physics.structures.Manifold;
 import physics.structures.Vector2;
 
@@ -120,7 +120,7 @@ public class PhysicsRect extends PhysicsObject {
     }
 
     @Override
-    public void draw(PhysicsRenderer renderer) {
+    public void draw(BatchRenderer renderer) {
 
     }
 }

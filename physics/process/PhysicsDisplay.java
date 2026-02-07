@@ -5,18 +5,40 @@ import physics.structures.Vector2;
 
 public class PhysicsDisplay {
     // handles mapAnchor, mapAnchor updates and zoom
-    private Vector2 displayOffset = new Vector2();
-    private double displayScale = 1.0;
 
-    private PhysicsObject mainObject = null;
-    private Vector2 displayOffsetVel = new Vector2();
-    private double displayOffsetAccel = 200;
-    private double displayOffsetFriction = 0.99;
-    private int displayFollowRadius = 0;
+    public Vector2 offset = new Vector2();
+    public double scale = 1.0;
+
+    public PhysicsObject mainObject = null;
+    public Vector2 offsetVel = new Vector2();
+    public double offsetAccel = 200;
+    public double offsetFriction = 0.99;
+    public int followRadius = 0;
+
+    private Vector2 _tmp = new Vector2();
 
     private Vector2 screenCenter = new Vector2();
 
-    public void updateMapOffset(double dt) {
+    public PhysicsDisplay() {
+    }
+
+    public void update(double dt) {
+        // move camera
+        offset.addLocal(offsetVel.scale(dt));
+
+        if (mainObject != null) {
+            _tmp.setSub(mainObject.pos.scale(scale).add(offset.scale(scale)), screenCenter);
+            double diff = _tmp.length();
+            if (diff > followRadius) {
+                offsetVel.subLocal(_tmp.scale(offsetAccel));
+            }
+        }
+
+        // friction
+        offsetVel.scaleLocal(offsetFriction);
+
+        if (offsetVel.lengthSquared() < 1e-10)
+            offsetVel.set(0, 0);
 
     }
 
@@ -29,19 +51,19 @@ public class PhysicsDisplay {
     }
 
     public Vector2 getOffset() {
-        return displayOffset;
+        return offset;
     }
 
     public double getDisplayScale() {
-        return displayScale;
+        return scale;
     }
 
     public PhysicsObject getMainObject() {
         return mainObject;
     }
 
-    public Vector2 getDisplayPos(Vector2 screenPos) {
-        return screenPos.sub(displayOffset.scale(displayScale)).scale(1 / displayScale);
+    public Vector2 getMapPos(Vector2 screenPos) {
+        return screenPos.sub(offset.scale(scale)).scale(1 / scale);
     }
 
 }

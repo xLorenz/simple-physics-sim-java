@@ -16,7 +16,7 @@ public class PhysicsUpdater implements Runnable {
     private static final float FIXED_DT = 1f / 120f; // physics rate
     private static final long NANOS_PER_UPDATE = (long) (1_000_000_000 * FIXED_DT);
 
-    private volatile boolean running = false;
+    private volatile boolean running = true;
 
     public java.util.HashSet<Long> processedPairs = new java.util.HashSet<>();
     public ArrayList<Manifold> frameManifolds = new ArrayList<>();
@@ -26,25 +26,19 @@ public class PhysicsUpdater implements Runnable {
     private final Vector2 _tmpB = new Vector2();
     private final Vector2 _tmpC = new Vector2();
 
-    private int POS_ITERS = 3;
-    private int SOLVER_ITERS = 20;
+    public int POS_ITERS = 3;
+    public int SOLVER_ITERS = 20;
 
-    private double POSCORR_SLOP = 0.01; // allowance
-    private double POSCORR_PERCENT = 0.1; // return
-    private double MIN_VEL_FOR_RESTITUTION = 8.0;
+    public double POSCORR_SLOP = 0.01; // allowance
+    public double POSCORR_PERCENT = 0.1; // return
+    public double MIN_VEL_FOR_RESTITUTION = 8.0;
 
     public void setHandler(NeoPhysicsHandler handler) {
         this.handler = handler;
     }
 
-    public void setVariables(int posItters, int solverItters, double positionalCorrectionSlop,
-            double positionalCorrectionpercent, double minimumVelForRestitution) {
-
-        this.POS_ITERS = posItters;
-        this.SOLVER_ITERS = solverItters;
-        this.POSCORR_SLOP = positionalCorrectionSlop; // allowance
-        this.POSCORR_PERCENT = positionalCorrectionpercent; // return
-        this.MIN_VEL_FOR_RESTITUTION = minimumVelForRestitution;
+    public void stop() {
+        running = false;
     }
 
     @Override
@@ -61,6 +55,8 @@ public class PhysicsUpdater implements Runnable {
             // Cap to avoid spiral of death after long pause
             if (accumulator > NANOS_PER_UPDATE * 16)
                 accumulator = NANOS_PER_UPDATE * 16;
+
+            handler.proccessAditionsAndRemovals(); // add/remove objects in queue
 
             while (accumulator >= NANOS_PER_UPDATE) {
                 fixedUpdate();

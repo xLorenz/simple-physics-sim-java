@@ -13,13 +13,13 @@ import physics.structures.Vector2;
 public class BatchRenderer {
 
     private Graphics2D g;
-    private NeoPhysicsHandler pHandler;
+    private Display display;
     private final Ellipse2D.Float circle = new Ellipse2D.Float();
     private final Path2D.Float polygon = new Path2D.Float();
     private final Rectangle2D.Float rect = new Rectangle2D.Float();
 
-    public void setHandler(NeoPhysicsHandler p) {
-        this.pHandler = p;
+    public void setDisplay(Display d) {
+        this.display = d;
     }
 
     public void setGraphics(Graphics2D g) {
@@ -39,9 +39,9 @@ public class BatchRenderer {
         if (g == null)
             return;
 
-        double scale = pHandler.display.scale;
-        double xi = ((pos.x + pHandler.display.offset.x) - radius) * scale;
-        double yi = ((pos.y + pHandler.display.offset.y) - radius) * scale;
+        double scale = display.scale;
+        double xi = ((pos.x + display.offset.x) - radius) * scale;
+        double yi = ((pos.y + display.offset.y) - radius) * scale;
         double diam = radius * 2 * scale;
 
         circle.setFrame(xi, yi, diam, diam);
@@ -54,9 +54,9 @@ public class BatchRenderer {
         if (g == null)
             return;
 
-        double scale = pHandler.display.scale;
-        double xi = ((pos.x + pHandler.display.offset.x) - radius) * scale;
-        double yi = ((pos.y + pHandler.display.offset.y) - radius) * scale;
+        double scale = display.scale;
+        double xi = ((pos.x + display.offset.x) - radius) * scale;
+        double yi = ((pos.y + display.offset.y) - radius) * scale;
         double diam = radius * 2 * scale;
 
         circle.setFrame(xi, yi, diam, diam);
@@ -69,10 +69,10 @@ public class BatchRenderer {
         if (g == null)
             return;
 
-        double scale = pHandler.display.scale;
+        double scale = display.scale;
 
-        double xi = (center.x - w / 2 + pHandler.display.offset.x) * scale;
-        double yi = (center.y - h / 2 + pHandler.display.offset.y) * scale;
+        double xi = (center.x - w / 2 + display.offset.x) * scale;
+        double yi = (center.y - h / 2 + display.offset.y) * scale;
 
         rect.setFrame(xi, yi, w * scale, h * scale);
         g.fill(rect);
@@ -82,10 +82,10 @@ public class BatchRenderer {
         if (g == null)
             return;
 
-        double scale = pHandler.display.scale;
+        double scale = display.scale;
 
-        double xi = (center.x - w / 2 + pHandler.display.offset.x) * scale;
-        double yi = (center.y - h / 2 + pHandler.display.offset.y) * scale;
+        double xi = (center.x - w / 2 + display.offset.x) * scale;
+        double yi = (center.y - h / 2 + display.offset.y) * scale;
 
         rect.setFrame(xi, yi, w * scale, h * scale);
         g.draw(rect);
@@ -95,10 +95,10 @@ public class BatchRenderer {
         if (g == null)
             return;
 
-        double scale = pHandler.display.scale;
+        double scale = display.scale;
 
-        double xi = (pos.x + pHandler.display.offset.x) * scale;
-        double yi = (pos.y + pHandler.display.offset.y) * scale;
+        double xi = (pos.x + display.offset.x) * scale;
+        double yi = (pos.y + display.offset.y) * scale;
 
         rect.setFrame(xi, yi, w * scale, w * scale);
         g.fill(rect);
@@ -108,16 +108,16 @@ public class BatchRenderer {
         if (g == null)
             return;
 
-        double scale = pHandler.display.scale;
+        double scale = display.scale;
 
-        double ax = (a.x + pHandler.display.offset.x) * scale;
-        double ay = (a.y + pHandler.display.offset.y) * scale;
+        double ax = (a.x + display.offset.x) * scale;
+        double ay = (a.y + display.offset.y) * scale;
 
-        double bx = (b.x + pHandler.display.offset.x) * scale;
-        double by = (b.y + pHandler.display.offset.y) * scale;
+        double bx = (b.x + display.offset.x) * scale;
+        double by = (b.y + display.offset.y) * scale;
 
-        double cx = (c.x + pHandler.display.offset.x) * scale;
-        double cy = (c.y + pHandler.display.offset.y) * scale;
+        double cx = (c.x + display.offset.x) * scale;
+        double cy = (c.y + display.offset.y) * scale;
 
         polygon.reset();
         polygon.moveTo(ax, ay);
@@ -132,17 +132,17 @@ public class BatchRenderer {
         if (g == null || count < 3)
             return;
 
-        double scale = pHandler.display.scale;
+        double scale = display.scale;
 
         polygon.reset();
 
-        double x0 = (verts[0].x + pHandler.display.offset.x) * scale;
-        double y0 = (verts[0].y + pHandler.display.offset.y) * scale;
+        double x0 = (verts[0].x + display.offset.x) * scale;
+        double y0 = (verts[0].y + display.offset.y) * scale;
         polygon.moveTo(x0, y0);
 
         for (int i = 1; i < count; i++) {
-            double xi = (verts[i].x + pHandler.display.offset.x) * scale;
-            double yi = (verts[i].y + pHandler.display.offset.y) * scale;
+            double xi = (verts[i].x + display.offset.x) * scale;
+            double yi = (verts[i].y + display.offset.y) * scale;
             polygon.lineTo(xi, yi);
         }
 
@@ -154,17 +154,17 @@ public class BatchRenderer {
         if (g == null || count < 3)
             return;
 
-        double scale = pHandler.display.scale;
+        double scale = display.scale;
 
         polygon.reset();
 
-        double x0 = (verts[0].x + pHandler.display.offset.x) * scale;
-        double y0 = (verts[0].y + pHandler.display.offset.y) * scale;
+        double x0 = (verts[0].x + display.offset.x) * scale;
+        double y0 = (verts[0].y + display.offset.y) * scale;
         polygon.moveTo(x0, y0);
 
         for (int i = 1; i < count; i++) {
-            double xi = (verts[i].x + pHandler.display.offset.x) * scale;
-            double yi = (verts[i].y + pHandler.display.offset.y) * scale;
+            double xi = (verts[i].x + display.offset.x) * scale;
+            double yi = (verts[i].y + display.offset.y) * scale;
             polygon.lineTo(xi, yi);
         }
 

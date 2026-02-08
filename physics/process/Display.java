@@ -3,7 +3,7 @@ package physics.process;
 import physics.objects.PhysicsObject;
 import physics.structures.Vector2;
 
-public class PhysicsDisplay {
+public class Display {
     // handles mapAnchor, mapAnchor updates and zoom
 
     public Vector2 offset = new Vector2();
@@ -19,7 +19,7 @@ public class PhysicsDisplay {
 
     private Vector2 screenCenter = new Vector2();
 
-    public PhysicsDisplay() {
+    public Display() {
     }
 
     public void update(double dt) {

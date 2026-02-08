@@ -16,11 +16,11 @@ import physics.structures.Chunk;
 import physics.structures.Contact;
 import physics.structures.Vector2;
 
-public class NeoPhysicsHandler {
+public class PhysicsHandler {
 
     private final PhysicsUpdater updater = new PhysicsUpdater();
     private final BatchRenderer renderer = new BatchRenderer();
-    public final PhysicsDisplay display = new PhysicsDisplay();
+    public final Display display = new Display();
 
     private ArrayList<PhysicsObject> updateObjects = new ArrayList<>();
     private volatile ArrayList<PhysicsObject> renderObjects = new ArrayList<>();
@@ -37,9 +37,9 @@ public class NeoPhysicsHandler {
     public Vector2 gravity = new Vector2(0, 980);
     private Long nextId = 1L;
 
-    public NeoPhysicsHandler() {
+    public PhysicsHandler() {
         updater.setHandler(this);
-        renderer.setHandler(this);
+        renderer.setDisplay(this.display);
     }
 
     public void beginUpdaterThread() {
@@ -204,7 +204,7 @@ public class NeoPhysicsHandler {
         return renderer;
     }
 
-    public PhysicsDisplay getDisplay() {
+    public Display getDisplay() {
         return display;
     }
 

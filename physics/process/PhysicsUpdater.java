@@ -11,7 +11,7 @@ import physics.structures.Vector2;
 
 public class PhysicsUpdater implements Runnable {
 
-    private NeoPhysicsHandler handler;
+    private PhysicsHandler handler;
 
     private static final float FIXED_DT = 1f / 120f; // physics rate
     private static final long NANOS_PER_UPDATE = (long) (1_000_000_000 * FIXED_DT);
@@ -33,7 +33,7 @@ public class PhysicsUpdater implements Runnable {
     public double POSCORR_PERCENT = 0.1; // return
     public double MIN_VEL_FOR_RESTITUTION = 8.0;
 
-    public void setHandler(NeoPhysicsHandler handler) {
+    public void setHandler(PhysicsHandler handler) {
         this.handler = handler;
     }
 

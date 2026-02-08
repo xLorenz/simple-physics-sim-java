@@ -50,17 +50,45 @@ public class BatchRenderer {
 
     }
 
-    public void drawRect(Vector2 pos, double w, double h) {
+    public void drawCircunference(Vector2 pos, int radius) {
+        if (g == null)
+            return;
+
+        double scale = pHandler.display.scale;
+        double xi = ((pos.x + pHandler.display.offset.x) - radius) * scale;
+        double yi = ((pos.y + pHandler.display.offset.y) - radius) * scale;
+        double diam = radius * 2 * scale;
+
+        circle.setFrame(xi, yi, diam, diam);
+
+        g.draw((Shape) circle);
+
+    }
+
+    public void drawRect(Vector2 center, double w, double h) {
         if (g == null)
             return;
 
         double scale = pHandler.display.scale;
 
-        double xi = (pos.x + pHandler.display.offset.x) * scale;
-        double yi = (pos.y + pHandler.display.offset.y) * scale;
+        double xi = (center.x - w / 2 + pHandler.display.offset.x) * scale;
+        double yi = (center.y - h / 2 + pHandler.display.offset.y) * scale;
 
         rect.setFrame(xi, yi, w * scale, h * scale);
         g.fill(rect);
+    }
+
+    public void drawRectOutline(Vector2 center, double w, double h) {
+        if (g == null)
+            return;
+
+        double scale = pHandler.display.scale;
+
+        double xi = (center.x - w / 2 + pHandler.display.offset.x) * scale;
+        double yi = (center.y - h / 2 + pHandler.display.offset.y) * scale;
+
+        rect.setFrame(xi, yi, w * scale, h * scale);
+        g.draw(rect);
     }
 
     public void drawSquare(Vector2 pos, double w) {
@@ -120,6 +148,28 @@ public class BatchRenderer {
 
         polygon.closePath();
         g.fill(polygon);
+    }
+
+    public void drawPolygonOutline(Vector2[] verts, int count) {
+        if (g == null || count < 3)
+            return;
+
+        double scale = pHandler.display.scale;
+
+        polygon.reset();
+
+        double x0 = (verts[0].x + pHandler.display.offset.x) * scale;
+        double y0 = (verts[0].y + pHandler.display.offset.y) * scale;
+        polygon.moveTo(x0, y0);
+
+        for (int i = 1; i < count; i++) {
+            double xi = (verts[i].x + pHandler.display.offset.x) * scale;
+            double yi = (verts[i].y + pHandler.display.offset.y) * scale;
+            polygon.lineTo(xi, yi);
+        }
+
+        polygon.closePath();
+        g.draw(polygon);
     }
 
     public void end() {

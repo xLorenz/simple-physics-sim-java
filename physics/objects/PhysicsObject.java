@@ -1,7 +1,6 @@
 package physics.objects;
 
 import java.awt.Color;
-import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -151,11 +150,9 @@ public abstract class PhysicsObject {
     public void update(double dt) {
     }
 
-    public abstract void draw(Graphics2D g, Vector2 offset, double scale);
-
     public abstract void draw(BatchRenderer renderer);
 
-    public abstract void drawDebug(Graphics2D g, Vector2 offset, double scale);
+    public abstract void drawDebug(BatchRenderer renderer);
 
     public abstract int[] getOccuppiedChunks(int chunkDim);
 

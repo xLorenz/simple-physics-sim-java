@@ -42,6 +42,16 @@ public class PhysicsDisplay {
 
     }
 
+    public void setScale(double newScale) {
+        if (newScale <= 0 || scale == newScale) {
+            return;
+        }
+
+        offset.addLocal(screenCenter.scale(1.0 / newScale - 1.0 / scale));
+
+        scale = newScale;
+    }
+
     public void setScreenCenter(Vector2 center) {
         this.screenCenter = center;
     }

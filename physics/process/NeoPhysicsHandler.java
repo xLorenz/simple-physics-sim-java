@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import physics.objects.PhysicsBall;
 import physics.objects.PhysicsObject;
@@ -26,6 +27,7 @@ public class NeoPhysicsHandler {
 
     private ArrayList<PhysicsObject> addQueue = new ArrayList<>();
     private ArrayList<PhysicsObject> removeQueue = new ArrayList<>();
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     private Thread updaterThread;
 
@@ -57,8 +59,13 @@ public class NeoPhysicsHandler {
     }
 
     public void publishFrame() {
-        synchronized (updateObjects) {
-            renderObjects = new ArrayList<>(updateObjects); // snapshot copy
+        lock.readLock().lock();
+        try {
+            synchronized (updateObjects) {
+                renderObjects = new ArrayList<>(updateObjects); // snapshot copy
+            }
+        } finally {
+            lock.readLock().unlock();
         }
     }
 
@@ -70,8 +77,15 @@ public class NeoPhysicsHandler {
         }
     }
 
+    public void renderDebug(Graphics2D g) {
+        renderer.setGraphics(g);
+        for (PhysicsObject p : getRenderObjects()) {
+            if (p != null)
+                p.drawDebug(renderer);
+        }
+    }
+
     public void addObject(PhysicsObject object) {
-        System.out.println("adding object");
         synchronized (addQueue) {
             if (!addQueue.contains(object)) {
                 object.id = nextId++;
@@ -83,6 +97,8 @@ public class NeoPhysicsHandler {
     public void removeObject(PhysicsObject object) {
         synchronized (removeQueue) {
             if (!removeQueue.contains(object)) {
+                if (display.mainObject == object)
+                    display.mainObject = null;
                 object.forceWake();
                 removeQueue.add(object);
             }
@@ -92,14 +108,18 @@ public class NeoPhysicsHandler {
     public void proccessAditionsAndRemovals() {
 
         // first, process any pending additions/removals queued from other threads
+        lock.writeLock().lock();
+
         synchronized (addQueue) {
             if (!addQueue.isEmpty()) {
+
                 for (PhysicsObject o : addQueue) {
                     updateObjects.add(o);
                 }
                 addQueue.clear();
             }
         }
+
         synchronized (removeQueue) {
             if (!removeQueue.isEmpty()) {
                 for (PhysicsObject o : removeQueue) {
@@ -126,6 +146,7 @@ public class NeoPhysicsHandler {
                 removeQueue.clear();
             }
         }
+        lock.writeLock().unlock();
 
     }
 
@@ -161,8 +182,13 @@ public class NeoPhysicsHandler {
     }
 
     public List<PhysicsObject> getUpdateObjectsSnapshot() {
-        synchronized (updateObjects) {
-            return Collections.unmodifiableList(new ArrayList<>(updateObjects));
+        lock.readLock().lock();
+        try {
+            synchronized (updateObjects) {
+                return Collections.unmodifiableList(new ArrayList<>(updateObjects));
+            }
+        } finally {
+            lock.readLock().unlock();
         }
     }
 
@@ -190,6 +216,109 @@ public class NeoPhysicsHandler {
     // get key for a chunk
     public long keyFor(int cx, int cy) {
         return ((long) cx << 32) ^ (cy & 0xffffffffL);
+    }
+
+    public void displayChunkBorders(Graphics2D g, int scrWidth, int scrHeight) {
+        double scale = display.scale;
+        if (scale <= 0)
+            return;
+
+        final int cd = chunkDimension; // chunk size in world units
+        final double ox = display.offset.x; // world offset (unscaled)
+        final double oy = display.offset.y;
+
+        // draw anchor (transformed by offset & scale)
+        int anchorX = (int) Math.round(ox * scale);
+        int anchorY = (int) Math.round(oy * scale);
+
+        Color prevColor = g.getColor();
+        g.setColor(Color.RED);
+        g.fillOval(anchorX - 5, anchorY - 5, 10, 10);
+
+        // compute world-space bounds of the viewport (unscaled world coords)
+        double viewLeft = -ox;
+        double viewTop = -oy;
+        double viewRight = scrWidth / scale - ox;
+        double viewBottom = scrHeight / scale - oy;
+
+        // compute chunk index range that intersects the viewport (add a 1-chunk margin)
+        int startCx = (int) Math.floor(viewLeft / cd) - 1;
+        int endCx = (int) Math.floor(viewRight / cd) + 1;
+        int startCy = (int) Math.floor(viewTop / cd) - 1;
+        int endCy = (int) Math.floor(viewBottom / cd) + 1;
+
+        g.setColor(Color.GRAY);
+
+        // vertical grid lines (one line at each chunk boundary)
+        for (int cx = startCx; cx <= endCx; cx++) {
+            int x = (int) Math.round((cx * cd + ox) * scale);
+            g.drawLine(x, 0, x, scrHeight);
+        }
+
+        // horizontal grid lines
+        for (int cy = startCy; cy <= endCy; cy++) {
+            int y = (int) Math.round((cy * cd + oy) * scale);
+            g.drawLine(0, y, scrWidth, y);
+        }
+
+        g.setColor(prevColor);
+    }
+
+    public void drawRecordedChunks(Graphics2D g, int scrWidth, int scrHeight, boolean fillActiveChunks) {
+
+        final int cd = chunkDimension;
+        final double offsetX = display.offset.x;
+        final double offsetY = display.offset.y;
+
+        // Compute unscaled screen bounds (world coords before applying scale)
+        double worldRight = scrWidth / display.scale;
+        double worldBottom = scrHeight / display.scale;
+
+        // A chunk at cx has unscaled x origin = cx * cd + offsetX
+        // We want chunks whose screen rect intersects [0,scrWidth] so:
+        // (cx*cd + offsetX) + cd > 0 && (cx*cd + offsetX) < worldRight
+        // => cx ∈ ((-offsetX - cd) / cd, (worldRight - offsetX) / cd)
+        int minCx = (int) Math.floor((-offsetX - cd) / (double) cd);
+        int maxCx = (int) Math.floor((worldRight - offsetX) / (double) cd);
+
+        int minCy = (int) Math.floor((-offsetY - cd) / (double) cd);
+        int maxCy = (int) Math.floor((worldBottom - offsetY) / (double) cd);
+
+        // clamp ranges if you have world limits (optional)
+        // e.g. minCx = Math.max(minCx, WORLD_MIN_CX);
+
+        int tileScreenSize = (int) Math.ceil(cd * display.scale);
+
+        g.setColor(Color.yellow);
+
+        for (int cx = minCx; cx <= maxCx; cx++) {
+            for (int cy = minCy; cy <= maxCy; cy++) {
+                long key = (((long) cx) << 32) | (cy & 0xffffffffL);
+                Chunk chunk = chunks.get(key);
+                if (chunk == null)
+                    continue;
+
+                // compute screen coords
+                int worldX = (int) Math.round((cx * cd + offsetX) * display.scale);
+                int worldY = (int) Math.round((cy * cd + offsetY) * display.scale);
+
+                // quick intersection safety (redundant but cheap)
+                if (worldX + tileScreenSize <= 0 || worldX >= scrWidth
+                        || worldY + tileScreenSize <= 0 || worldY >= scrHeight) {
+                    continue;
+                }
+
+                g.setColor(Color.yellow);
+                g.drawRect(worldX, worldY, tileScreenSize, tileScreenSize);
+
+                if (fillActiveChunks) {
+                    if (!chunk.objects.isEmpty()) {
+                        g.setColor(Color.green.darker());
+                        g.fillRect(worldX, worldY, tileScreenSize, tileScreenSize);
+                    }
+                }
+            }
+        }
     }
 
 }

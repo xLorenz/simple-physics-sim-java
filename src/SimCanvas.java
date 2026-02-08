@@ -9,7 +9,6 @@ import javax.swing.SwingUtilities;
 
 import physics.objects.PhysicsBall;
 import physics.objects.PhysicsObject;
-import physics.process.PhysicsHandler;
 import physics.process.NeoPhysicsHandler;
 import physics.structures.Vector2;
 
@@ -28,7 +27,6 @@ public class SimCanvas extends Canvas implements Runnable {
 
     private Vector2 mousePos = new Vector2();
 
-    private PhysicsHandler handler = new PhysicsHandler(size.width, size.height);
     private NeoPhysicsHandler nhandler = new NeoPhysicsHandler();
 
     private boolean leftClick = false;
@@ -82,18 +80,19 @@ public class SimCanvas extends Canvas implements Runnable {
     }
 
     private void setUpSim() {
-        handler.mapAnchor.set(0, 0);
-        handler.mapAnchorVelocity.set(0, 0);
-        handler.chunkDimension = 20;
-        handler.anchorFollowVelocity = 10;
-        handler.anchorFollowFriction = 0.0;
-        handler.anchorFollowRadius = 0;
+        nhandler.display.offset.set(0, 0);
+        nhandler.display.offsetVel.set(0, 0);
+        nhandler.display.offsetAccel = 10;
+        nhandler.display.offsetFriction = 0.5;
+        nhandler.display.followRadius = 0;
+        nhandler.display.setScreenCenter(new Vector2(size.width, size.height).scaleLocal(0.5));
 
+        nhandler.chunkDimension = 20;
         // floor
-        handler.addRect(new Vector2(size.width / 2, size.height), size.width - 100, 100);
+        nhandler.addRect(new Vector2(size.width / 2, size.height), size.width - 100, 100);
         // walls
-        handler.addRect(new Vector2(100, 0), 50, size.height * 2);
-        handler.addRect(new Vector2(size.width - 100, 0), 50, size.height * 2);
+        nhandler.addRect(new Vector2(100, 0), 50, size.height * 2);
+        nhandler.addRect(new Vector2(size.width - 100, 0), 50, size.height * 2);
 
     }
 
@@ -142,14 +141,13 @@ public class SimCanvas extends Canvas implements Runnable {
                     g.fillRect(0, 0, size.width, size.height);
 
                     // draw game
-                    // if (debug) {
-                    // handler.displayChunkBorders(g, size.width, size.height);
-                    // handler.drawRecordedChunks(g, true);
-                    // handler.displayObjectsDebug(g);
-                    // } else {
-                    // handler.displayObjects(g);
-                    // }
-                    nhandler.render(g);
+                    if (debug) {
+                        nhandler.displayChunkBorders(g, size.width, size.height);
+                        nhandler.drawRecordedChunks(g, size.width, size.height, true);
+                        nhandler.renderDebug(g);
+                    } else {
+                        nhandler.render(g);
+                    }
 
                 } finally {
                     g.dispose();
@@ -290,10 +288,10 @@ public class SimCanvas extends Canvas implements Runnable {
             }
 
             if (e.getKeyCode() == KeyEvent.VK_UP) {
-                nhandler.display.scale /= 0.8;
+                nhandler.display.setScale(nhandler.display.scale / 0.8);
             }
             if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                nhandler.display.scale *= 0.8;
+                nhandler.display.setScale(nhandler.display.scale * 0.8);
             }
         }
 

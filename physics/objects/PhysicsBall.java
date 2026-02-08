@@ -1,12 +1,13 @@
-package physics;
+package physics.objects;
 
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.geom.Ellipse2D;
+
+import physics.collisions.Collision;
+import physics.process.BatchRenderer;
+import physics.structures.Manifold;
 
 public class PhysicsBall extends PhysicsObject {
     public int radius;
-    public Ellipse2D.Float oval = new Ellipse2D.Float();
 
     public PhysicsBall(int radius, double elasticity, double mass, long id) {
         super(id);
@@ -21,44 +22,29 @@ public class PhysicsBall extends PhysicsObject {
     }
 
     @Override
-    public void draw(Graphics2D g, Vector2 offset, double scale) {
-        int cx = (int) (pos.x + offset.x);
-        int cy = (int) (pos.y + offset.y);
-        int xi = cx - radius;
-        int yi = cy - radius;
-        int diam = radius * 2;
-
-        oval.setFrame(xi * scale, yi * scale, diam * scale, diam * scale);
-
-        g.setColor(displayColor);
-        g.fill(oval);
-        g.setColor(displayColorDarker);
-        g.draw(oval);
+    public void draw(BatchRenderer renderer) {
+        renderer.setFill(displayColor, 255);
+        renderer.drawCircle(pos, radius);
+        renderer.setFill(displayColor.darker(), 255);
+        renderer.drawCircunference(pos, radius);
     }
 
     @Override
-    public void drawDebug(Graphics2D g, Vector2 offset, double scale) {
-        int cx = (int) (pos.x + offset.x);
-        int cy = (int) (pos.y + offset.y);
-        int xi = cx - radius;
-        int yi = cy - radius;
-        int diam = radius * 2;
-
-        oval.setFrame(xi * scale, yi * scale, diam * scale, diam * scale);
+    public void drawDebug(BatchRenderer renderer) {
 
         if (sleeping) {
-            g.setColor(displayColorDarker);
-            g.fill(oval);
+            renderer.setFill(displayColor.darker(), 255);
+            renderer.drawCircle(pos, radius);
         } else {
-            g.setColor(displayColor);
-            g.fill(oval);
+            renderer.setFill(displayColor, 255);
+            renderer.drawCircle(pos, radius);
         }
         if (!supported) {
-            g.setColor(Color.blue);
-            g.draw(oval);
+            renderer.setFill(Color.blue, 255);
+            renderer.drawCircunference(pos, radius);
         } else {
-            g.setColor(displayColorDarker);
-            g.draw(oval);
+            renderer.setFill(displayColor.darker(), 255);
+            renderer.drawCircunference(pos, radius);
         }
     }
 

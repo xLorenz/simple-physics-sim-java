@@ -1,13 +1,14 @@
-package physics;
+package physics.objects;
 
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.geom.Rectangle2D;
+
+import physics.collisions.Collision;
+import physics.process.BatchRenderer;
+import physics.structures.Manifold;
 
 public class PhysicsRect extends PhysicsObject {
     public int width;
     public int height;
-    public Rectangle2D.Float rect = new Rectangle2D.Float();
 
     public PhysicsRect(int width, int height, double mass, long id) {
         super(id);
@@ -25,45 +26,30 @@ public class PhysicsRect extends PhysicsObject {
     }
 
     @Override
-    public void draw(Graphics2D g, Vector2 offset, double scale) {
-        int cx = (int) (pos.x + offset.x);
-        int cy = (int) (pos.y + offset.y);
-        int xi = cx - width / 2;
-        int yi = cy - height / 2;
-
-        rect.setFrame(xi * scale, yi * scale, width * scale, height * scale);
-
-        g.setColor(displayColor);
-        g.fill(rect);
-
-        g.setColor(displayColorDarker);
-        g.draw(rect);
+    public void draw(BatchRenderer renderer) {
+        renderer.setFill(displayColor, 255);
+        renderer.drawRect(pos, width, height);
+        renderer.setFill(displayColor.darker(), 255);
+        renderer.drawRectOutline(pos, width, height);
     }
 
     @Override
-    public void drawDebug(Graphics2D g, Vector2 offset, double scale) {
-        int cx = (int) (pos.x + offset.x);
-        int cy = (int) (pos.y + offset.y);
-        int xi = cx - width / 2;
-        int yi = cy - height / 2;
-
-        rect.setFrame(xi * scale, yi * scale, width * scale, height * scale);
-
+    public void drawDebug(BatchRenderer renderer) {
         if (!sleeping) {
-            g.setColor(displayColor);
+            renderer.setFill(displayColor, 255);
         } else {
-            g.setColor(displayColorDarker);
+            renderer.setFill(displayColor.darker(), 255);
         }
 
-        g.fill(rect);
+        renderer.drawRect(pos, width, height);
 
         if (!supported) {
-            g.setColor(Color.green);
+            renderer.setFill(Color.green, 255);
         } else {
-            g.setColor(displayColorDarker);
+            renderer.setFill(displayColor.darker(), 255);
         }
 
-        g.draw(rect);
+        renderer.drawRectOutline(pos, width, height);
     }
 
     public int[] getCorners() {
@@ -113,4 +99,5 @@ public class PhysicsRect extends PhysicsObject {
     public Manifold collideWithRect(PhysicsRect rect) {
         return Collision.rectRect(rect, this);
     }
+
 }

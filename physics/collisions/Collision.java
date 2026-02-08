@@ -1,4 +1,9 @@
-package physics;
+package physics.collisions;
+
+import physics.objects.PhysicsBall;
+import physics.objects.PhysicsRect;
+import physics.structures.Manifold;
+import physics.structures.Vector2;
 
 public class Collision {
     private static final double EPSILON = 1e-6;

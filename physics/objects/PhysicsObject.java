@@ -1,10 +1,15 @@
-package physics;
+package physics.objects;
 
 import java.awt.Color;
-import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import physics.collisions.CollisionListener;
+import physics.process.BatchRenderer;
+import physics.structures.Contact;
+import physics.structures.Manifold;
+import physics.structures.Vector2;
 
 public abstract class PhysicsObject {
 
@@ -145,17 +150,17 @@ public abstract class PhysicsObject {
     public void update(double dt) {
     }
 
-    public abstract void draw(Graphics2D g, Vector2 offset, double scale);
+    public abstract void draw(BatchRenderer renderer);
 
-    public abstract void drawDebug(Graphics2D g, Vector2 offset, double scale);
+    public abstract void drawDebug(BatchRenderer renderer);
 
     public abstract int[] getOccuppiedChunks(int chunkDim);
 
-    abstract Manifold collide(PhysicsObject other);
+    public abstract Manifold collide(PhysicsObject other);
 
     // hooks for double dispatch
-    abstract Manifold collideWithCircle(PhysicsBall c);
+    public abstract Manifold collideWithCircle(PhysicsBall c);
 
-    abstract Manifold collideWithRect(PhysicsRect aabb);
+    public abstract Manifold collideWithRect(PhysicsRect aabb);
 
 }

@@ -13,7 +13,7 @@ public class PhysicsUpdater implements Runnable {
 
     private PhysicsHandler handler;
 
-    private static final float FIXED_DT = 1f / 60f; // physics rate
+    private static final float FIXED_DT = 1f / 60; // physics rate
     private static final long NANOS_PER_UPDATE = (long) (1_000_000_000 * FIXED_DT);
 
     private volatile boolean running = true;
@@ -95,13 +95,12 @@ public class PhysicsUpdater implements Runnable {
         synchronized (objects) {
             synchronized (dynamicObjects) {
 
-                for (int i = 0; i < size; i++) {
-                    clearObjectsContacts(objects.get(i));
-                }
-
                 for (int i = 0; i < dynamicObjectsSize; i++) {
                     updateObjectsChunks(dynamicObjects.get(i));
                     updateObjectsSupportState(dynamicObjects.get(i));
+                }
+                for (int i = 0; i < size; i++) {
+                    clearObjectsContacts(objects.get(i));
                 }
 
                 for (int i = 0; i < dynamicObjectsSize; i++) {

@@ -92,12 +92,18 @@ public class PhysicsRect extends PhysicsObject {
     // hooks for double dispatch
     @Override
     public Manifold collideWithCircle(PhysicsBall b) {
-        return Collision.circleRect(b, this);
+        Manifold m = Collision.circleRect(b, this);
+        onColisionWithCircle(m);
+        b.onColisionWithRect(m);
+        return m;
     }
 
     @Override
     public Manifold collideWithRect(PhysicsRect rect) {
-        return Collision.rectRect(rect, this);
+        Manifold m = Collision.rectRect(rect, this);
+        onColisionWithRect(m);
+        rect.onColisionWithRect(m);
+        return m;
     }
 
 }

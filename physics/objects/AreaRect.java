@@ -3,7 +3,6 @@ package physics.objects;
 import java.awt.Color;
 import java.util.ArrayList;
 
-import physics.collisions.Collision;
 import physics.process.BatchRenderer;
 import physics.structures.Manifold;
 import physics.structures.Vector2;

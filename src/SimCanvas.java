@@ -87,9 +87,10 @@ public class SimCanvas extends Canvas implements Runnable {
         handler.display.followRadius = 0;
         handler.display.setScreenCenter(new Vector2(size.width, size.height).scaleLocal(0.5));
 
-        handler.chunkDimension = 20;
+        handler.chunkDimension = 31;
         // floor
-        handler.addRect(new Vector2(size.width / 2, size.height), size.width - 100, 100);
+        handler.addRect(new Vector2(size.width / 2, size.height), size.width - 100,
+                100);
         // walls
         handler.addRect(new Vector2(100, 0), 50, size.height * 2);
         handler.addRect(new Vector2(size.width - 100, 0), 50, size.height * 2);
@@ -121,7 +122,8 @@ public class SimCanvas extends Canvas implements Runnable {
                 fpsTimer = now;
 
                 JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
-                frame.setTitle("Project | FPS: " + fps + " | Count: " + handler.getUpdateObjectsSnapshot().size());
+                frame.setTitle("Project | FPS: " + fps + " | TPS: " + handler.getUpdater().getUps() + " | Count: "
+                        + handler.getUpdateObjectsSnapshot().size());
             }
         }
     }

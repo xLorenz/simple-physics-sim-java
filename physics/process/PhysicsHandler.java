@@ -25,6 +25,9 @@ public class PhysicsHandler {
     private ArrayList<PhysicsObject> updateObjects = new ArrayList<>();
     private volatile ArrayList<PhysicsObject> renderObjects = new ArrayList<>();
 
+    private ArrayList<PhysicsObject> staticObjects = new ArrayList<>();
+    private ArrayList<PhysicsObject> dynamicObjects = new ArrayList<>();
+
     private ArrayList<PhysicsObject> addQueue = new ArrayList<>();
     private ArrayList<PhysicsObject> removeQueue = new ArrayList<>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -32,7 +35,7 @@ public class PhysicsHandler {
     private Thread updaterThread;
 
     private Map<Long, Chunk> chunks = new HashMap<>();
-    public int chunkDimension = 25;
+    public int chunkDimension = 25; // Chunk Dimension in pixels
 
     public Vector2 gravity = new Vector2(0, 980);
     private Long nextId = 1L;
@@ -71,9 +74,18 @@ public class PhysicsHandler {
 
     public void render(Graphics2D g) {
         renderer.setGraphics(g);
-        for (PhysicsObject p : getRenderObjects()) {
-            if (p != null)
-                p.draw(renderer);
+        if (display.mainObject != null) {
+            int[] borders = display.getMainObjectViewDistanceBorders();
+            for (PhysicsObject p : getRenderObjects()) {
+                if (p != null && display.inViewDistance(p, borders))
+                    p.draw(renderer);
+            }
+
+        } else {
+            for (PhysicsObject p : getRenderObjects()) {
+                if (p != null)
+                    p.draw(renderer);
+            }
         }
     }
 
@@ -115,6 +127,11 @@ public class PhysicsHandler {
 
                 for (PhysicsObject o : addQueue) {
                     updateObjects.add(o);
+                    if (o.stationary) {
+                        staticObjects.add(o);
+                    } else {
+                        dynamicObjects.add(o);
+                    }
                 }
                 addQueue.clear();
             }
@@ -129,7 +146,14 @@ public class PhysicsHandler {
                         Contact.release(c);
                     }
                     o.contacts.clear();
+
                     updateObjects.remove(o);
+                    if (o.stationary) {
+                        staticObjects.remove(o);
+                    } else {
+                        dynamicObjects.remove(o);
+                    }
+
                     // also remove from any chunks the object occupied
                     for (int cx = o.cMinCx; cx <= o.cMaxCx; cx++) {
                         for (int cy = o.cMinCy; cy <= o.cMaxCy; cy++) {
@@ -192,6 +216,36 @@ public class PhysicsHandler {
         }
     }
 
+    public ArrayList<PhysicsObject> getDynamicObjects() {
+        return dynamicObjects;
+    }
+
+    public List<PhysicsObject> getDynamicObjectsSnapshot() {
+        lock.readLock().lock();
+        try {
+            synchronized (dynamicObjects) {
+                return Collections.unmodifiableList(new ArrayList<>(dynamicObjects));
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public ArrayList<PhysicsObject> getStaticObjects() {
+        return staticObjects;
+    }
+
+    public List<PhysicsObject> getStaticObjectsSnapshot() {
+        lock.readLock().lock();
+        try {
+            synchronized (staticObjects) {
+                return Collections.unmodifiableList(new ArrayList<>(staticObjects));
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     public PhysicsUpdater getUpdater() {
         return updater;
     }
@@ -206,6 +260,33 @@ public class PhysicsHandler {
 
     public Display getDisplay() {
         return display;
+    }
+
+    public List<PhysicsObject> getObjectsInChunk(int tileX, int tileY) {
+        Chunk c = getOrCreateChunk(tileX, tileY);
+
+        lock.readLock().lock();
+        try {
+            synchronized (c.objects) {
+                return Collections.unmodifiableList(new ArrayList<>(c.objects));
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public List<PhysicsObject> getObjectsInChunk(Chunk c) {
+        if (c == null)
+            return new ArrayList<>();
+
+        lock.readLock().lock();
+        try {
+            synchronized (c.objects) {
+                return Collections.unmodifiableList(new ArrayList<>(c.objects));
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     // check for a chunk or add one to the map

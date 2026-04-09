@@ -51,11 +51,16 @@ public class PhysicsBall extends PhysicsObject {
     @Override
     public int[] getOccuppiedChunks(int chunkDim) {
 
+        int up = (vel.y > VEL_EPS * 10) ? 1 : 0;
+        int down = (vel.y < -VEL_EPS * 10) ? 1 : 0;
+        int right = (vel.x > VEL_EPS * 10) ? 1 : 0;
+        int left = (vel.x < -VEL_EPS * 10) ? 1 : 0;
+
         int[] result = new int[4];
-        result[0] = (int) Math.floor((pos.x - radius) / chunkDim);
-        result[1] = (int) Math.floor((pos.x + radius) / chunkDim);
-        result[2] = (int) Math.floor((pos.y - radius) / chunkDim);
-        result[3] = (int) Math.floor((pos.y + radius) / chunkDim);
+        result[0] = (int) Math.floor((pos.x - radius) / chunkDim) - left; // minx
+        result[1] = (int) Math.floor((pos.x + radius) / chunkDim) + right; // maxx
+        result[2] = (int) Math.floor((pos.y - radius) / chunkDim) - down; // miny
+        result[3] = (int) Math.floor((pos.y + radius) / chunkDim) + up; // maxy
 
         return result;
     }

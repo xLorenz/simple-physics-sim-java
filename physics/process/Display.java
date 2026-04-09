@@ -15,6 +15,8 @@ public class Display {
     public double offsetFriction = 0.99;
     public int followRadius = 0;
 
+    public int renderDistance = 32; // Render distance in chunks
+
     private Vector2 _tmp = new Vector2();
 
     private Vector2 screenCenter = new Vector2();
@@ -50,6 +52,45 @@ public class Display {
         offset.addLocal(screenCenter.scale(1.0 / newScale - 1.0 / scale));
 
         scale = newScale;
+    }
+
+    public int[] getMainObjectViewDistanceBorders() {
+        if (mainObject == null) {
+            int[] nul = { 0, 0, 0, 0 };
+            return nul;
+        }
+
+        int[] borders = {
+                mainObject.cx - renderDistance, // viewMinCx
+                mainObject.cx + renderDistance, // viewMaxCx
+                mainObject.cy - renderDistance, // viewMinCy
+                mainObject.cy + renderDistance, // viewMaxCy
+        };
+
+        return borders;
+    }
+
+    public int[] getMainObjectViewDistanceBorders(int distance) {
+        if (mainObject == null) {
+            int[] nul = { 0, 0, 0, 0 };
+            return nul;
+        }
+
+        int[] borders = {
+                mainObject.cx - distance, // viewMinCx
+                mainObject.cx + distance, // viewMaxCx
+                mainObject.cy - distance, // viewMinCy
+                mainObject.cy + distance, // viewMaxCy
+        };
+
+        return borders;
+    }
+
+    public boolean inViewDistance(PhysicsObject o, int[] borders) {
+        return o.cMaxCx >= borders[0] &&
+                o.cMinCx <= borders[1] &&
+                o.cMaxCy >= borders[2] &&
+                o.cMinCy <= borders[3];
     }
 
     public void setScreenCenter(Vector2 center) {

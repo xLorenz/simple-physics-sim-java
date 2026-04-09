@@ -13,7 +13,7 @@ public class PhysicsUpdater implements Runnable {
 
     private PhysicsHandler handler;
 
-    private static final float FIXED_DT = 1f / 120f; // physics rate
+    private static final float FIXED_DT = 1f / 60f; // physics rate
     private static final long NANOS_PER_UPDATE = (long) (1_000_000_000 * FIXED_DT);
 
     private volatile boolean running = true;
@@ -32,6 +32,10 @@ public class PhysicsUpdater implements Runnable {
     public double POSCORR_SLOP = 0.01; // allowance
     public double POSCORR_PERCENT = 0.1; // return
     public double MIN_VEL_FOR_RESTITUTION = 8.0;
+
+    private int updates = 0;
+    private long lastTime = System.nanoTime();
+    private volatile int ups = 0;
 
     public void setHandler(PhysicsHandler handler) {
         this.handler = handler;
@@ -61,6 +65,12 @@ public class PhysicsUpdater implements Runnable {
             while (accumulator >= NANOS_PER_UPDATE) {
                 fixedUpdate();
                 accumulator -= NANOS_PER_UPDATE;
+                updates++;
+            }
+            if (now - lastTime >= 1_000_000_000L) {
+                ups = updates;
+                updates = 0;
+                lastTime = now;
             }
 
             handler.publishFrame(); // publish snapshot for rendering
@@ -72,49 +82,60 @@ public class PhysicsUpdater implements Runnable {
 
     }
 
+    public int getUps() {
+        return ups;
+    }
+
     private void fixedUpdate() {
-        ArrayList<PhysicsObject> objects = handler.getUpdateObjects();
+        ArrayList<PhysicsObject> objects = new ArrayList<>(handler.getUpdateObjects());
         int size = objects.size();
+        ArrayList<PhysicsObject> dynamicObjects = handler.getUpdateObjects();
+        int dynamicObjectsSize = dynamicObjects.size();
 
         synchronized (objects) {
+            synchronized (dynamicObjects) {
 
-            for (int i = 0; i < size; i++) {
-                updateObjectsChunks(objects.get(i));
-                updateObjectsSupportState(objects.get(i));
-                clearObjectsContacts(objects.get(i));
-            }
+                for (int i = 0; i < size; i++) {
+                    clearObjectsContacts(objects.get(i));
+                }
 
-            for (int i = 0; i < size; i++) {
-                addGravity(objects.get(i));
-            }
+                for (int i = 0; i < dynamicObjectsSize; i++) {
+                    updateObjectsChunks(dynamicObjects.get(i));
+                    updateObjectsSupportState(dynamicObjects.get(i));
+                }
 
-            for (int i = 0; i < size; i++) {
-                updateObjectsVelocities(objects.get(i));
-            }
+                for (int i = 0; i < dynamicObjectsSize; i++) {
+                    addGravity(dynamicObjects.get(i));
+                }
 
-            // check by pairs
-            processedPairs.clear();
-            proccessCollisionsByPairs(objects);
+                for (int i = 0; i < dynamicObjectsSize; i++) {
+                    updateObjectsVelocities(dynamicObjects.get(i));
+                }
 
-            createPerObjectContacts();
+                // check by pairs
+                processedPairs.clear();
+                proccessCollisionsByPairs(dynamicObjects);
 
-            // small positional correction passes
-            for (int p = 0; p < POS_ITERS; p++) {
-                for (Manifold m : frameManifolds)
-                    positionalCorrection(m);
-            }
-            // iterative velocity solver
-            for (int it = 0; it < SOLVER_ITERS; it++) {
-                for (Manifold m : frameManifolds)
-                    resolveVelocityImpulse(m);
-            }
+                createPerObjectContacts();
 
-            // release pooled Manifolds
-            releaseManifolds();
+                // small positional correction passes
+                for (int p = 0; p < POS_ITERS; p++) {
+                    for (Manifold m : frameManifolds)
+                        positionalCorrection(m);
+                }
+                // iterative velocity solver
+                for (int it = 0; it < SOLVER_ITERS; it++) {
+                    for (Manifold m : frameManifolds)
+                        resolveVelocityImpulse(m);
+                }
 
-            for (int i = 0; i < size; i++) {
-                objects.get(i).updateSleepState(); // +1 sleepFrames if vel == threshold
-                objects.get(i).update(FIXED_DT);
+                // release pooled Manifolds
+                releaseManifolds();
+
+                for (int i = 0; i < size; i++) {
+                    objects.get(i).updateSleepState(); // +1 sleepFrames if vel == threshold
+                    objects.get(i).update(FIXED_DT);
+                }
             }
 
         }
@@ -128,8 +149,8 @@ public class PhysicsUpdater implements Runnable {
         int ncx = (int) (Math.floor(o.pos.x / chunkDimension));
         int ncy = (int) (Math.floor(o.pos.y / chunkDimension));
 
-        if (ncx == o.cx && ncy == o.cy)
-            return;
+        // if (ncx == o.cx && ncy == o.cy)
+        // return;
 
         // if the chunk changed, and the object is large, it will occupy different
         // chunks
@@ -139,6 +160,9 @@ public class PhysicsUpdater implements Runnable {
         int maxCx = occuppiedChunks[1];
         int minCy = occuppiedChunks[2];
         int maxCy = occuppiedChunks[3];
+
+        if (minCx == o.cMinCx && maxCx == o.cMaxCx && minCy == o.cMinCy && maxCy == o.cMaxCy)
+            return;
 
         // remove from olds
         for (int cx = o.cMinCx; cx <= o.cMaxCx; cx++) {
@@ -197,38 +221,32 @@ public class PhysicsUpdater implements Runnable {
     private void proccessCollisionsByPairs(ArrayList<PhysicsObject> objects) {
         // iterate objects
         for (PhysicsObject o1 : objects) {
-            for (int cx = o1.cMinCx; cx <= o1.cMaxCx; cx++) {
-                for (int cy = o1.cMinCy; cy <= o1.cMaxCy; cy++) {
-                    Chunk ch = handler.getOrCreateChunk(cx, cy);
-                    if (ch == null)
-                        continue;
-                    for (PhysicsObject o2 : ch.objects) {
-
-                        // skip sleepy objects
-                        if (o1.sleeping && o2.sleeping) {
+            if (!o1.sleeping)
+                for (int cx = o1.cMinCx; cx <= o1.cMaxCx; cx++) {
+                    for (int cy = o1.cMinCy; cy <= o1.cMaxCy; cy++) {
+                        Chunk ch = handler.getOrCreateChunk(cx, cy);
+                        if (ch == null)
                             continue;
-                        }
-                        // check unordered pair only once
-                        if (o1.id <= o2.id)
-                            continue;
-                        long a = Math.min(o1.id, o2.id);
-                        long b = Math.max(o1.id, o2.id);
-                        long pairKey = (a << 32) | (b & 0xffffffffL);
+                        for (PhysicsObject o2 : ch.objects) {
 
-                        if (processedPairs.contains(pairKey))
-                            continue; // already handled this unordered pair in another chunk
-                        processedPairs.add(pairKey);
-                        Manifold m = o1.collide(o2); // normal o2 -> o1
-                        if (m != null) {
-                            if (m.collided) {
-                                frameManifolds.add(m);
-                            } else {
-                                Manifold.release(m);
+                            long a = Math.min(o1.id, o2.id);
+                            long b = Math.max(o1.id, o2.id);
+                            long pairKey = (a << 32) | (b & 0xffffffffL);
+
+                            if (processedPairs.contains(pairKey))
+                                continue; // already handled this unordered pair in another chunk
+                            processedPairs.add(pairKey);
+                            Manifold m = o1.collide(o2); // normal o2 -> o1
+                            if (m != null) {
+                                if (m.collided) {
+                                    frameManifolds.add(m);
+                                } else {
+                                    Manifold.release(m);
+                                }
                             }
                         }
                     }
                 }
-            }
         }
     }
 
